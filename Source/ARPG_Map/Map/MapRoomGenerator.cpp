@@ -10,7 +10,44 @@ void AMapRoomGenerator::BeginPlay()
 
 	if (RoomTemplates.IsEmpty())
 		return;
+		
+	// List of open connectors waiting for attachment
+	TArray<const UMapRoomConnector*> OpenConnectors;
 
+	// For every graph node
+	for (int32 Row = 0; Row < RowCount; ++Row)
+	{
+		for (int32 Column = 0; Column < ColumnCount; ++Column)
+		{
+			//const UMapRoomTemplate RequiredRoomTemplate = GetRequiredRoomTemplateFromGraphNode(Row, Column);
+			
+			// Get template with required connectors, theme and role
+			const UMapRoomTemplate* RandomRoomTemplate = GetRandomValidRoomTemplate(Row, Column);
+		}
+	}
+}
+
+/*UMapRoomTemplate AMapRoomGenerator::GetRequiredRoomTemplateFromGraphNode(const int32 Row, const int32 Column)
+{
+	AMapRoom Room;
+
+	UMapRoomConnector Connector(EMapConnectorDir::East);	
+	Room.Connectors.Add(Connector);
+
+	UMapRoomTemplate RoomTemplate;
+	RoomTemplate.RoomClass = Room.GetClass();
+	
+	return RoomTemplate;
+}*/
+
+/*
+void AMapRoomGenerator::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (RoomTemplates.IsEmpty())
+		return;
+		
 	// List of open connectors waiting for attachment
 	TArray<const UMapRoomConnector*> OpenConnectors;
 
@@ -18,7 +55,14 @@ void AMapRoomGenerator::BeginPlay()
 	{
 		for (int32 Column = 0; Column < ColumnCount; ++Column)
 		{				
-			UMapRoomTemplate* RandomRoomTemplate = RoomTemplates[FMath::RandRange(0, RoomTemplates.Num() - 1)];			
+			//const UMapRoomTemplate* RandomRoomTemplate = RoomTemplates[FMath::RandRange(0, RoomTemplates.Num() - 1)];
+			const UMapRoomTemplate* RandomRoomTemplate = GetRandomValidRoomTemplate(Row, Column);
+			if (!RandomRoomTemplate)
+			{
+				UE_LOG(LogTemp, Error, TEXT("AMapRoomGenerator: No valid room template found"));
+				return;
+			}
+			
 			AMapRoom* NewRoom = GetWorld()->SpawnActor<AMapRoom>(RandomRoomTemplate->RoomClass);
 
 			if (NewRoom->Connectors.IsEmpty())
@@ -55,7 +99,7 @@ void AMapRoomGenerator::BeginPlay()
 			}
 		}
 	}
-}
+}*/
 
 void AMapRoomGenerator::AttachRoomToConnector(AMapRoom* Room, const UMapRoomConnector* TargetConnector, const UMapRoomConnector* ConnectorToAttach)
 {
@@ -78,3 +122,58 @@ void AMapRoomGenerator::DrawRoomDebug(const AMapRoom* Room, const int32 Row, con
 	for (UMapRoomConnector* Connector : Room->Connectors)
 		Connector->DrawDebug(Column, Row);
 }
+
+bool AMapRoomGenerator::IsConnectorValid(const UMapRoomConnector* Connector, const int32 Row, const int32 Column) const
+{
+	switch (Connector->Direction)
+	{
+	case EMapConnectorDir::North:
+		return Row > 0;
+		
+	case EMapConnectorDir::South:
+		return Row < RowCount - 1;
+		
+	case EMapConnectorDir::West:
+		return Column > 0;
+		
+	case EMapConnectorDir::East:
+		return Column < ColumnCount - 1;
+		
+	default:
+		return false;
+	}
+}
+
+const UMapRoomConnector* AMapRoomGenerator::GetFirstValidConnector(const TArray<UMapRoomConnector*>& Connectors, const int32 Row, const int32 Column)
+{	
+	for (const UMapRoomConnector* Connector : Connectors)
+	{
+		if (IsConnectorValid(Connector, Row, Column))
+			return Connector;
+	}
+
+	return nullptr;
+};
+
+const UMapRoomTemplate* AMapRoomGenerator::GetRandomValidRoomTemplate(const int32 Row, const int32 Column)
+{
+	TArray<const UMapRoomTemplate*> Valid;
+
+	for (const UMapRoomTemplate* Template : RoomTemplates)
+	{
+		const AMapRoom* Defaults = Template->RoomClass.GetDefaultObject();
+		for (const UMapRoomConnector* Conn : Defaults->Connectors)
+		{
+			if (IsConnectorValid(Conn, Row, Column))
+			{
+				Valid.Add(Template);
+				break;
+			}
+		}
+	}
+
+	if (Valid.IsEmpty())
+		return nullptr;
+
+	return Valid[FMath::RandRange(0, Valid.Num() - 1)];
+};

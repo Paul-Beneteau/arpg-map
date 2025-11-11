@@ -4,6 +4,8 @@
 #include "Engine/DataAsset.h"
 #include "MapRoomTemplate.generated.h"
 
+class AMapRoom;
+
 // Template use to generate room
 UCLASS()
 class ARPG_MAP_API UMapRoomTemplate : public UPrimaryDataAsset
@@ -12,5 +14,5 @@ class ARPG_MAP_API UMapRoomTemplate : public UPrimaryDataAsset
 	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<AActor> RoomClass;
+	TSubclassOf<AMapRoom> RoomClass;
 };

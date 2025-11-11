@@ -27,8 +27,17 @@ protected:
 	
 	virtual void BeginPlay() override;
 
+	//UMapRoomTemplate GetRequiredRoomTemplateFromGraphNode(const int32 Row, const int32 Column);
+	
 	// Move the room so that his ConnectorToAttach snap to TargetConnector
 	void AttachRoomToConnector(AMapRoom* Room, const UMapRoomConnector* TargetConnector, const UMapRoomConnector* ConnectorToAttach);
 
 	void DrawRoomDebug(const AMapRoom* Room, const int32 Row, const int32 Column) const;
+
+	// Check if connector is inside map borders
+	bool IsConnectorValid(const UMapRoomConnector* Connector, const int32 Row, const int32 Column) const;
+
+	const UMapRoomConnector* GetFirstValidConnector(const TArray<UMapRoomConnector*>& Connectors, const int32 Row, const int32 Column);
+
+	const UMapRoomTemplate* GetRandomValidRoomTemplate(const int32 Row, const int32 Column);
 };
