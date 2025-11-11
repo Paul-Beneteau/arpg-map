@@ -31,7 +31,7 @@ void AMapRoomGenerator::BeginPlay()
 {
 	AMapRoom Room;
 
-	UMapRoomConnector Connector(EMapConnectorDir::East);	
+	UMapRoomConnector Connector(EMapDirection::East);	
 	Room.Connectors.Add(Connector);
 
 	UMapRoomTemplate RoomTemplate;
@@ -127,16 +127,16 @@ bool AMapRoomGenerator::IsConnectorValid(const UMapRoomConnector* Connector, con
 {
 	switch (Connector->Direction)
 	{
-	case EMapConnectorDir::North:
+	case EMapDirection::North:
 		return Row > 0;
 		
-	case EMapConnectorDir::South:
+	case EMapDirection::South:
 		return Row < RowCount - 1;
 		
-	case EMapConnectorDir::West:
+	case EMapDirection::West:
 		return Column > 0;
 		
-	case EMapConnectorDir::East:
+	case EMapDirection::East:
 		return Column < ColumnCount - 1;
 		
 	default:

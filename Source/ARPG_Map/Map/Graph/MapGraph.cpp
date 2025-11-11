@@ -1,6 +1,6 @@
 ﻿#include "MapGraph.h"
 
-#include "MapRoomConnector.h"
+#include "MapTypes.h"
 
 FMapGraph::FMapGraph(int32 InRows, int32 InColumns)
 	: Rows(InRows), Columns(InColumns)
@@ -17,11 +17,11 @@ void FMapGraph::Resize(const int32 InRows, const int32 InColumns)
 	Nodes.SetNum(Rows * Columns);
 }
 
-FMapGraphNode& FMapGraph::At(const int32 Row, const int32 Column)
+FMapGraphNode& FMapGraph::At(const FMapGraphCoord& Coord)
 {
-	check (Nodes.IsValidIndex(Row * Columns + Column));
+	check (Nodes.IsValidIndex(Coord.Row * Columns + Coord.Column));
 	
-	return Nodes[Row * Columns + Column];
+	return Nodes[Coord.Row * Columns + Coord.Column];
 }
 
 void FMapGraph::Print(const UWorld* InWorld)
@@ -42,34 +42,36 @@ void FMapGraph::Print(const UWorld* InWorld)
 
 			FMapGraphNode GraphNode = Nodes[Row * Columns + Column];
 			
-			if (GraphNode.Role == "MainPathStart")
+			if (GraphNode.Role == EMapRole::MainPathStart)
 				DebugColor = FColor::Yellow;
-			else if (GraphNode.Role == "MainPathEnd")
+			else if (GraphNode.Role == EMapRole::MainPathEnd)
 				DebugColor = FColor::Magenta;
+			else if (GraphNode.Role == EMapRole::MainPath)
+				DebugColor = FColor::Green;
 			else
-				DebugColor = FColor::Green;			
+				DebugColor = FColor::Blue;
 
 			DrawDebugBox(InWorld, Location, FVector(Size * 0.8 / 2, Size * 0.8 / 2, 1.f), DebugColor, true, 0.f, 0, 3.f);
 
-			for (EMapConnectorDir ConnectorDirection : GraphNode.Connectors)
+			for (EMapDirection ConnectorDirection : GraphNode.Connectors)
 			{
 				FVector OffSet { FVector::ZeroVector };
 
 				switch (ConnectorDirection)
 				{
-				case EMapConnectorDir::North:
+				case EMapDirection::North:
 					OffSet += FVector(Size * 0.9 / 2, 0, 0);
 					break;
 					
-				case EMapConnectorDir::South:
+				case EMapDirection::South:
 					OffSet += FVector(-Size * 0.9 / 2,0,  0);
 					break;
 					
-				case EMapConnectorDir::West:
+				case EMapDirection::West:
 					OffSet += FVector(0, -Size * 0.9 / 2,0);
 					break;
 					
-				case EMapConnectorDir::East:
+				case EMapDirection::East:
 					OffSet += FVector(0, Size * 0.9 / 2,0);
 					break;
 					
@@ -81,4 +83,9 @@ void FMapGraph::Print(const UWorld* InWorld)
 			}
 		}
 	}	
+}
+
+bool FMapGraph::IsValidCoord(const FMapGraphCoord& Coord) const
+{
+	return Coord.Row >= 0 && Coord.Row < Rows && Coord.Column >= 0 && Coord.Column < Columns;
 }

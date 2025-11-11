@@ -7,19 +7,19 @@ void UMapRoomConnector::DrawDebug(const int32 RoomColumn, const int32 RoomRow)
 	FColor Color;
 	switch (Direction)
 	{
-	case EMapConnectorDir::North:
+	case EMapDirection::North:
 		Color = FColor::Red;
 		break;
 		
-	case EMapConnectorDir::East:
+	case EMapDirection::East:
 		Color = FColor::Green;
 		break;
 		
-	case EMapConnectorDir::South:
+	case EMapDirection::South:
 		Color = FColor::Blue;
 		break;
 		
-	case EMapConnectorDir::West:
+	case EMapDirection::West:
 		Color = FColor::Yellow;
 		break;
 		

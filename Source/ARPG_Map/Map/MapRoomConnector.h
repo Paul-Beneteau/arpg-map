@@ -2,18 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ArrowComponent.h"
+#include "Graph/MapLayout.h"
 #include "MapRoomConnector.generated.h"
 
 class AMapRoom;
-
-UENUM(BlueprintType)
-enum class EMapConnectorDir : uint8
-{
-	North,
-	East,
-	South,
-	West
-};
 
 // Connector representing an entry between two rooms.
 UCLASS(ClassGroup=(Map), meta=(BlueprintSpawnableComponent))
@@ -23,7 +15,7 @@ class ARPG_MAP_API UMapRoomConnector : public UArrowComponent
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapConnectorDir Direction = EMapConnectorDir::North;
+	EMapDirection Direction = EMapDirection::North;
 	
 	void DrawDebug(const int32 RoomColumn, const int32 RoomRow);
 	
