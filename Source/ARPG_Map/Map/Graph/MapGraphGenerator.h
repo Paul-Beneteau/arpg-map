@@ -12,6 +12,8 @@ class ARPG_MAP_API AMapGraphGenerator : public AActor
 	GENERATED_BODY()
 	
 protected:
+	FMapGraph CachedMapGraph;
+	
 	UPROPERTY(EditDefaultsOnly)
 	int32 Rows { 5 };
 	UPROPERTY(EditDefaultsOnly)
@@ -24,11 +26,13 @@ protected:
 	virtual void BeginPlay() override;
 	
 	// Pass by copy because FMapGraph created is a local variable. Not expensive with RVO
-	FMapGraph BuildMapGraph();
+	void BuildMapGraph();
 
-	void GenerateMainPath(FMapGraph& MapGraph);
+	void GenerateMainPath();
 
-	void GenerateSegment(FMapGraph& MapGraph, FMapGraphCoord SegmentStart, const FMapSegment& Segment);
+	void GenerateSegment(FMapGraphCoord Anchor, const FMapSegment& Segment);
 	
 	void AddConnectors(FMapGraphNode& GraphNode, FMapGraphCoord GraphNodeCoord);
+
+	void GenerateBranchesFromMainPath(const FBranchRule& BranchRule);
 };

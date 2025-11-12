@@ -55,7 +55,7 @@ struct FLayoutDefinition
 	EMapLayout Layout = EMapLayout::Straight;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FMapSegment> PathSegments;
+	TArray<FMapSegment> MainPathSegments;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bAllowMirrorHorizontal = true;
@@ -82,6 +82,35 @@ struct FLayoutInstance
 	bool bFlippedV = false;
 };
 
+// Branch direction relative to the main path 
+UENUM(BlueprintType)
+enum class EMapBranchDirection : uint8
+{
+	None,
+	Left,
+	Right
+};
+
+USTRUCT(BlueprintType)
+struct FBranchRule
+{
+	GENERATED_BODY()
+
+	// Direction relative to the main path 
+	UPROPERTY(EditAnywhere)
+	EMapBranchDirection RelativeDirection = EMapBranchDirection::None;
+
+	UPROPERTY(EditAnywhere)
+	int32 StepInterval = 0;
+
+	// Percent probability of spawn from 0 to 1
+	UPROPERTY(EditAnywhere)
+	float SpawnProbability = 0.f;
+
+	UPROPERTY(EditAnywhere)
+	TArray<FMapSegmentSection> Sections;
+};
+
 USTRUCT(BlueprintType)
 struct FMapLayoutConfig
 {
@@ -89,13 +118,10 @@ struct FMapLayoutConfig
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FLayoutDefinition> AvailableLayouts;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MinSegmentLength = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MaxSegmentLength = 0;
 
 	UPROPERTY(EditDefaultsOnly)
 	FMapGraphCoord MainPathStart { 0, 0 };
+
 	UPROPERTY(EditAnywhere)
-	int32 MainPathLength = 0;
+	TArray<FBranchRule> BranchRules;
 };

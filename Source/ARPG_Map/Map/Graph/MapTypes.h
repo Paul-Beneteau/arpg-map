@@ -41,4 +41,5 @@ struct FMapGraphCoord
 	bool operator==(const FMapGraphCoord& Other) const { return Row == Other.Row && Column == Other.Column; }
 
 	void Step(EMapDirection Direction, int32 Distance);
+	FMapGraphCoord Stepped(EMapDirection Direction, int32 Distance);
 };
