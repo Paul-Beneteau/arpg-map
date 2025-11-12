@@ -13,6 +13,15 @@ enum class EMapDirection : uint8
 	West
 };
 
+// Branch direction relative to the main path 
+UENUM(BlueprintType)
+enum class EMapTurnDirection : uint8
+{
+	None,
+	Left,
+	Right
+};
+
 UENUM(BlueprintType)
 enum class EMapRole : uint8
 {

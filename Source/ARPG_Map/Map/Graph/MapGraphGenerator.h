@@ -15,24 +15,28 @@ protected:
 	FMapGraph CachedMapGraph;
 	
 	UPROPERTY(EditDefaultsOnly)
-	int32 Rows { 5 };
+	int32 Rows { 10 };
 	UPROPERTY(EditDefaultsOnly)
-	int32 Columns { 6 };
+	int32 Columns { 10 };
 
 	UPROPERTY(EditDefaultsOnly)
 	FMapLayoutConfig LayoutConfig;
 	
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-	// Pass by copy because FMapGraph created is a local variable. Not expensive with RVO
+	// Build the complete map graph
 	void BuildMapGraph();
 
 	void GenerateMainPath();
 
-	void GenerateSegment(FMapGraphCoord Anchor, const FMapSegment& Segment);
-	
-	void AddConnectors(FMapGraphNode& GraphNode, FMapGraphCoord GraphNodeCoord);
-
 	void GenerateBranchesFromMainPath(const FBranchRule& BranchRule);
+	
+	// Build a segment in the graph from an anchor. The segment starts one cell after the anchor.
+	void GenerateSegment(FMapGraphCoord Anchor, const FMapSegment& Segment);
+
+	// Place a cell in the graph
+	void PlaceCell(const FMapGraphCoord Coord, const FMapGraphCell& Cell);
+
+	// Adds connectors between two cells
+	void LinkCells(const FMapGraphCoord FirstCell, const FMapGraphCoord SecondCell);
 };

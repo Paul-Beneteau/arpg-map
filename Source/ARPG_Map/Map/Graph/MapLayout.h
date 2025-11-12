@@ -82,15 +82,6 @@ struct FLayoutInstance
 	bool bFlippedV = false;
 };
 
-// Branch direction relative to the main path 
-UENUM(BlueprintType)
-enum class EMapBranchDirection : uint8
-{
-	None,
-	Left,
-	Right
-};
-
 USTRUCT(BlueprintType)
 struct FBranchRule
 {
@@ -98,7 +89,7 @@ struct FBranchRule
 
 	// Direction relative to the main path 
 	UPROPERTY(EditAnywhere)
-	EMapBranchDirection RelativeDirection = EMapBranchDirection::None;
+	EMapTurnDirection TurnDirection = EMapTurnDirection::None;
 
 	UPROPERTY(EditAnywhere)
 	int32 StepInterval = 0;

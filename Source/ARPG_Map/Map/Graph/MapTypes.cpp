@@ -5,11 +5,11 @@ void FMapGraphCoord::Step(EMapDirection Direction, int32 Distance)
 	switch (Direction)
 	{
 	case EMapDirection::North:
-		Row += Distance;
+		Row -= Distance;
 		break;
 		
 	case EMapDirection::South:
-		Row -= Distance;
+		Row += Distance;
 		break;
 		
 	case EMapDirection::East:
@@ -33,11 +33,11 @@ FMapGraphCoord FMapGraphCoord::Stepped(EMapDirection Direction, int32 Distance)
 	switch (Direction)
 	{
 	case EMapDirection::North:
-		RowOffset += Distance;
+		RowOffset -= Distance;
 		break;
 		
 	case EMapDirection::South:
-		RowOffset -= Distance;
+		RowOffset += Distance;
 		break;
 		
 	case EMapDirection::East:

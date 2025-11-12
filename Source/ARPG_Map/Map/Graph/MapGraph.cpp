@@ -17,7 +17,7 @@ void FMapGraph::Resize(const int32 InRows, const int32 InColumns)
 	Nodes.SetNum(Rows * Columns);
 }
 
-FMapGraphNode& FMapGraph::At(const FMapGraphCoord& Coord)
+FMapGraphCell& FMapGraph::At(const FMapGraphCoord& Coord)
 {
 	check (Nodes.IsValidIndex(Coord.Row * Columns + Coord.Column));
 	
@@ -31,7 +31,7 @@ void FMapGraph::Print(const UWorld* InWorld)
 		for (int32 Column = 0; Column < Columns; ++Column)
 		{
 			constexpr float Size = 100.f;
-			const FVector Location(Row * Size, Column * Size, 120.f);
+			const FVector Location((-Row) * Size, Column * Size, 120.f);
 			FColor DebugColor = FColor::Black;
 			
 			if (!Nodes[Row * Columns + Column].IsValid())
@@ -40,7 +40,7 @@ void FMapGraph::Print(const UWorld* InWorld)
 				continue;
 			}
 
-			FMapGraphNode GraphNode = Nodes[Row * Columns + Column];
+			FMapGraphCell GraphNode = Nodes[Row * Columns + Column];
 			
 			if (GraphNode.Role == EMapRole::MainPathStart)
 				DebugColor = FColor::Yellow;

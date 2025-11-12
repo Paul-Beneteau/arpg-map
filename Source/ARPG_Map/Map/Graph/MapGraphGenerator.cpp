@@ -18,7 +18,7 @@ void AMapGraphGenerator::BeginPlay()
 	MapLayout.MainPathSegments =
 	{
 		FMapSegment(EMapDirection::East,TArray<FMapSegmentSection>({
-				FMapSegmentSection(3, EMapRole::MainPath, "Plain"),
+				FMapSegmentSection(2, EMapRole::MainPath, "Plain"),
 			})),
 		
 		FMapSegment(EMapDirection::North, TArray<FMapSegmentSection>( {
@@ -26,14 +26,17 @@ void AMapGraphGenerator::BeginPlay()
 		})),
 		
 		FMapSegment(EMapDirection::East, TArray<FMapSegmentSection>({
-			FMapSegmentSection(2, EMapRole::MainPath, "Plain"),
+			FMapSegmentSection(6, EMapRole::MainPath, "Plain"),
 		})),
 
+		FMapSegment(EMapDirection::South, TArray<FMapSegmentSection>({
+			FMapSegmentSection(4, EMapRole::MainPath, "Plain"),
+		}))
 	};
 	
 	LayoutConfig.AvailableLayouts.Add(MapLayout);
 
-	FBranchRule BranchRule(EMapBranchDirection::Right, 1, 1.f);
+	FBranchRule BranchRule(EMapTurnDirection::Right, 1, 1.f);
 	BranchRule.Sections =
 	{
 		FMapSegmentSection(2, EMapRole::None, "Plain"),
@@ -84,7 +87,7 @@ void AMapGraphGenerator::GenerateBranchesFromMainPath(const FBranchRule& BranchR
 		for (int32 Offset = 1;  Offset <= Segment.GetLength(); Offset += BranchRule.StepInterval)
 		{
 			FMapGraphCoord BranchAnchor { SegmentAnchor.Stepped(Segment.Direction, Offset) };
-			FMapSegment BranchSegment { GetBranchAbsoluteDirection(Segment.Direction, BranchRule.RelativeDirection), BranchRule.Sections };
+			FMapSegment BranchSegment { MapUtils::GetBranchDirection(Segment.Direction, BranchRule.TurnDirection), BranchRule.Sections };
 			
 			GenerateSegment(BranchAnchor, BranchSegment);
 		}
@@ -95,39 +98,47 @@ void AMapGraphGenerator::GenerateBranchesFromMainPath(const FBranchRule& BranchR
 
 void AMapGraphGenerator::GenerateSegment(FMapGraphCoord Anchor, const FMapSegment& Segment)
 {
-	FMapGraphCoord CurrentCoord = Anchor;
+	FMapGraphCoord CurrentCell = Anchor;
 	
 	for (const FMapSegmentSection& Section : Segment.Sections)
 	{
 		for (int32 Offset = 0; Offset < Section.Length; ++Offset)
 		{
-			CurrentCoord.Step(Segment.Direction, 1);
+			CurrentCell.Step(Segment.Direction, 1);
 			
-			if (!CachedMapGraph.IsValidCoord(CurrentCoord))
+			if (!CachedMapGraph.IsValidCoord(CurrentCell))
 			{
 				UE_LOG(LogTemp, Warning, TEXT("AMapGraphGenerator: Segment is out of bounds!"));
 				break;
 			}			
 
-			if (CachedMapGraph.At(CurrentCoord).IsValid())
+			if (CachedMapGraph.At(CurrentCell).IsValid())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("AMapGraphGenerator: Segment to generate is on an existing graph node!"));
 				break;
 			}			
-				
-			CachedMapGraph.At(CurrentCoord) = FMapGraphNode(Section.Role, Section.Theme);
+
+			PlaceCell(CurrentCell, FMapGraphCell(Section.Role, Section.Theme));
+
+			const FMapGraphCoord PreviousCell = CurrentCell.Stepped(Segment.Direction, -1);
+			LinkCells(CurrentCell, PreviousCell);
 		}
 	}
 }
 
-void AMapGraphGenerator::AddConnectors(FMapGraphNode& GraphNode, FMapGraphCoord GraphNodeCoord)
+void AMapGraphGenerator::PlaceCell(const FMapGraphCoord Coord, const FMapGraphCell& Cell)
 {
-	if (GraphNodeCoord.Column > 0)
-		GraphNode.Connectors.Add(EMapDirection::West);		
-	if (GraphNodeCoord.Column < Columns - 1)
-		GraphNode.Connectors.Add(EMapDirection::East);		
-	if (GraphNodeCoord.Row > 0)
-		GraphNode.Connectors.Add(EMapDirection::North);		
-	if (GraphNodeCoord.Row < Rows - 1)		
-		GraphNode.Connectors.Add(EMapDirection::South);
+	CachedMapGraph.At(Coord) = Cell;
+}
+
+void AMapGraphGenerator::LinkCells(const FMapGraphCoord FirstCell, const FMapGraphCoord SecondCell)
+{
+	if (!CachedMapGraph.IsValidCoord(FirstCell) || !CachedMapGraph.IsValidCoord(SecondCell))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AMapGraphGenerator: linking cells with invalid coordinates!"));
+		return;
+	}
+	
+	CachedMapGraph.At(FirstCell).Connectors.Add(MapUtils::GetDirectionToward(FirstCell, SecondCell));
+	CachedMapGraph.At(SecondCell).Connectors.Add(MapUtils::GetDirectionToward(SecondCell, FirstCell));
 }

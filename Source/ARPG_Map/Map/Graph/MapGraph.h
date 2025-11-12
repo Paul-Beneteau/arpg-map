@@ -8,7 +8,7 @@ struct FMapGraphCoord;
 enum class EMapDirection : uint8;
 
 USTRUCT(BlueprintType)
-struct FMapGraphNode
+struct FMapGraphCell
 {
 	GENERATED_BODY()
 
@@ -36,7 +36,7 @@ public:
 	
 	void Resize(const int32 InRows, const int32 InColumns);
 	
-	FMapGraphNode& At(const FMapGraphCoord& Coord);
+	FMapGraphCell& At(const FMapGraphCoord& Coord);
 
 	void Print(const UWorld* InWorld);
 
@@ -48,7 +48,7 @@ public:
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FMapGraphNode> Nodes;
+	TArray<FMapGraphCell> Nodes;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Rows { 0 };
