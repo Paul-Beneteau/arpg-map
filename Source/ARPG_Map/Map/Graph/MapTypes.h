@@ -15,7 +15,7 @@ enum class EMapDirection : uint8
 
 // Branch direction relative to the main path 
 UENUM(BlueprintType)
-enum class EMapTurnDirection : uint8
+enum class EMapTurn : uint8
 {
 	None,
 	Left,
@@ -49,6 +49,7 @@ struct FMapGraphCoord
 
 	bool operator==(const FMapGraphCoord& Other) const { return Row == Other.Row && Column == Other.Column; }
 
-	void Step(EMapDirection Direction, int32 Distance);
-	FMapGraphCoord Stepped(EMapDirection Direction, int32 Distance);
+	FMapGraphCoord Stepped(const EMapDirection Direction, const int32 Distance) const;
+
+	static const FMapGraphCoord None;
 };

@@ -1,12 +1,14 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "MapGraphUtils.h"
 #include "MapTypes.h"
 #include "MapLayout.generated.h"
 
 UENUM(BlueprintType)
 enum class EMapLayout : uint8
 {
+	None,
 	Straight,
 	L,
 	Z,
@@ -37,49 +39,28 @@ struct FMapSegment
 {
 	GENERATED_BODY()
 
+	FMapGraphCoord Start { FMapGraphCoord::None };
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapDirection Direction = EMapDirection::None;
+	EMapDirection Direction { EMapDirection::None };
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FMapSegmentSection> Sections;
-
+	
 	int32 GetLength() const;
-};
 
-USTRUCT(BlueprintType)
-struct FLayoutDefinition
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapLayout Layout = EMapLayout::Straight;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FMapSegment> MainPathSegments;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bAllowMirrorHorizontal = true;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bAllowMirrorVertical = true;
-};
+	FMapGraphCoord GetCoordAt(int32 SegmentIndex) const
+	{
+		check(SegmentIndex < GetLength());
+		return Start.Stepped(Direction, SegmentIndex);
+	}
 
-USTRUCT(BlueprintType)
-struct FLayoutInstance
-{
-	GENERATED_BODY()
+	TArray<FMapGraphCoord> GetCells() const;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapLayout Layout = EMapLayout::Straight;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FMapSegment> Segments;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bFlippedH = false;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bFlippedV = false;
+	bool IsValid() const { return GetLength() > 0 && Direction != EMapDirection::None; };
+
+	void Print() const { UE_LOG(LogTemp, Warning, TEXT("Segment %d-%d | Length %d | Direction %s"),
+		Start.Row, Start.Column, GetLength(), *MapUtils::GetDirectionText(Direction)); };
 };
 
 USTRUCT(BlueprintType)
@@ -89,7 +70,7 @@ struct FBranchRule
 
 	// Direction relative to the main path 
 	UPROPERTY(EditAnywhere)
-	EMapTurnDirection TurnDirection = EMapTurnDirection::None;
+	EMapTurn Turn = EMapTurn::None;
 
 	UPROPERTY(EditAnywhere)
 	int32 StepInterval = 0;
@@ -103,16 +84,30 @@ struct FBranchRule
 };
 
 USTRUCT(BlueprintType)
-struct FMapLayoutConfig
+struct FMapMainPath
 {
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FLayoutDefinition> AvailableLayouts;
+	TArray<FMapSegment> Segments;
 
 	UPROPERTY(EditDefaultsOnly)
-	FMapGraphCoord MainPathStart { 0, 0 };
+	FMapGraphCoord Start { FMapGraphCoord::None };
 
-	UPROPERTY(EditAnywhere)
-	TArray<FBranchRule> BranchRules;
+	TArray<FMapGraphCoord> GetCells() const;
+
+	FMapSegment GetSegmentAt(int32 PathIndex) const;
+	
+	FMapSegment GetSegmentAt(FMapGraphCoord Cell) const;
+
+	FORCEINLINE void Reset()
+	{
+		Segments.Reset();
+		Start = FMapGraphCoord::None;
+	};
+
+	FORCEINLINE bool IsValid()
+	{
+		return Start != FMapGraphCoord::None && GetCells().Num() >= 2;
+	}
 };

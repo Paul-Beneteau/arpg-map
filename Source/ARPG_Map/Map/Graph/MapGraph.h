@@ -38,8 +38,6 @@ public:
 	
 	FMapGraphCell& At(const FMapGraphCoord& Coord);
 
-	void Print(const UWorld* InWorld);
-
 	int32 GetRows() const { return Rows; }
 
 	int32 GetColumns() const { return Columns; }

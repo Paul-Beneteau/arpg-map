@@ -1,31 +1,8 @@
 ﻿#include "MapTypes.h"
 
-void FMapGraphCoord::Step(EMapDirection Direction, int32 Distance)
-{
-	switch (Direction)
-	{
-	case EMapDirection::North:
-		Row -= Distance;
-		break;
-		
-	case EMapDirection::South:
-		Row += Distance;
-		break;
-		
-	case EMapDirection::East:
-		Column += Distance;
-		break;
-		
-	case EMapDirection::West:
-		Column -= Distance;
-		break;
+const FMapGraphCoord FMapGraphCoord::None { -1, -1};
 
-	default:
-		break;
-	}
-}
-
-FMapGraphCoord FMapGraphCoord::Stepped(EMapDirection Direction, int32 Distance)
+FMapGraphCoord FMapGraphCoord::Stepped(const EMapDirection Direction, const int32 Distance) const
 {
 	int32 RowOffset = 0;
 	int32 ColumnOffset = 0;
