@@ -1,5 +1,6 @@
 ﻿#include "MapTypes.h"
 
+// Sentinel value representing an invalid/uninitialized coordinate
 const FMapGraphCoord FMapGraphCoord::None { -1, -1};
 
 FMapGraphCoord FMapGraphCoord::Stepped(const EMapDirection Direction, const int32 Distance) const

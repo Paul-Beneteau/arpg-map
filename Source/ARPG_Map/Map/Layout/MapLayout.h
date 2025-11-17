@@ -1,10 +1,11 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "MapGraphUtils.h"
-#include "MapTypes.h"
+#include "ARPG_Map/Map/MapGraphUtils.h"
+#include "ARPG_Map/Map/Types/MapTypes.h"
 #include "MapLayout.generated.h"
 
+// Represent main path shape of the map
 UENUM(BlueprintType)
 enum class EMapLayout : uint8
 {
@@ -19,43 +20,52 @@ enum class EMapLayout : uint8
 	Fork
 };
 
+// Part of a segment which have a theme (visual style) and a role (What the cell represent)
 USTRUCT(BlueprintType)
 struct FMapSegmentSection
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Length = 0;
 		
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EMapRole Role = EMapRole::None;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName Theme = "None";
 };
 
+// It represents a straight line of cells in the map graph. It has a strat coordinate, a direction and length. It is composed of sections that can
+// define different themes in role in the same segment.
 USTRUCT(BlueprintType)
 struct FMapSegment
 {
 	GENERATED_BODY()
 
-	FMapGraphCoord Start { FMapGraphCoord::None };
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FMapGraphCoord Start = FMapGraphCoord::None;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapDirection Direction { EMapDirection::None };
+	EMapDirection Direction = EMapDirection::None;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FMapSegmentSection> Sections;
 	
 	int32 GetLength() const;
 
-	FMapGraphCoord GetCoordAt(int32 SegmentIndex) const
-	{
-		check(SegmentIndex < GetLength());
-		return Start.Stepped(Direction, SegmentIndex);
-	}
-
+	// Get all the cell of the segment
 	TArray<FMapGraphCoord> GetCells() const;
+
+	// Get the current section at the graph coordinate
+	FMapSegmentSection GetSection(const FMapGraphCoord Coord) const;
+	
+	// Get the coordinate of the call at the segment index. Index represent the cell of the segment
+	FORCEINLINE FMapGraphCoord GetCoordAt(const int32 Index) const
+	{
+		check(Index < GetLength());
+		return Start.Stepped(Direction, Index);
+	}
 	
 	bool IsValid() const { return GetLength() > 0 && Direction != EMapDirection::None; };
 
@@ -63,6 +73,7 @@ struct FMapSegment
 		Start.Row, Start.Column, GetLength(), *MapUtils::GetDirectionText(Direction)); };
 };
 
+// Define branch generation behavior, with their direction, interval, number.
 USTRUCT(BlueprintType)
 struct FBranchRule
 {
@@ -83,6 +94,7 @@ struct FBranchRule
 	TArray<FMapSegmentSection> Sections;
 };
 
+// Main path of the map graph composed of segments.
 USTRUCT(BlueprintType)
 struct FMapMainPath
 {
@@ -92,12 +104,14 @@ struct FMapMainPath
 	TArray<FMapSegment> Segments;
 
 	UPROPERTY(EditDefaultsOnly)
-	FMapGraphCoord Start { FMapGraphCoord::None };
+	FMapGraphCoord Start = FMapGraphCoord::None;
 
+	// Get all cells of the path
 	TArray<FMapGraphCoord> GetCells() const;
 
+	// Get segment for an index of path.
 	FMapSegment GetSegmentAt(int32 PathIndex) const;
-	
+	// Get segment for a coordinate of path.
 	FMapSegment GetSegmentAt(FMapGraphCoord Cell) const;
 
 	FORCEINLINE void Reset()

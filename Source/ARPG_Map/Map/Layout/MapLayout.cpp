@@ -10,6 +10,24 @@ int32 FMapSegment::GetLength() const
 	return Length;
 }
 
+FMapSegmentSection FMapSegment::GetSection(const FMapGraphCoord Coord) const
+{
+	int32 SegmentOffset = 0;
+
+	for (const FMapSegmentSection& Section : Sections)
+	{
+		for (int32 SectionCellIndex = 0; SectionCellIndex < Section.Length; ++SectionCellIndex)
+		{
+			if (GetCoordAt(SegmentOffset + SectionCellIndex) == Coord)
+				return Section;
+		}
+		
+		SegmentOffset += Section.Length;
+	}
+
+	return FMapSegmentSection();
+}
+
 TArray<FMapGraphCoord> FMapSegment::GetCells() const
 {
 	TArray<FMapGraphCoord> Cells;

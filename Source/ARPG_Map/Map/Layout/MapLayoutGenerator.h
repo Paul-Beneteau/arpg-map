@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "ARPG_Map/Map/Graph/MapLayout.h"
+#include "ARPG_Map/Map/Layout/MapLayout.h"
 #include "MapLayoutGenerator.generated.h"
 
 // Represent the map layout. It is composed of a main path which has the shape of EMapLayout, and branch rules that
@@ -81,7 +81,7 @@ protected:
 		const int32 AnchorOffset = 0,
 		const int32 Length = -1);
 
-	// Filter segment valid direction from given directions
+	// Filter segment valid direction from given possible directions
 	TArray<EMapDirection> FilterValidDirections(
 		const FMapGraphCoord SegmentStart,
 		const int32 SegmentLength,

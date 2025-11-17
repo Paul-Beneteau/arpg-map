@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ARPG_Map/Map/MapGraphUtils.h"
 #include "Components/ArrowComponent.h"
-#include "Graph/MapLayout.h"
 #include "MapRoomConnector.generated.h"
 
 class AMapRoom;
