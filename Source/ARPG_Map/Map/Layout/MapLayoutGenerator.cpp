@@ -60,16 +60,8 @@ FMapLayout FMapLayoutGenerator::GenerateLayoutU()
 		return FMapLayout();
 
 	Layout.MainPath.Segments.Add(ThirdSegment);
-
-	// TODO: parametrize branch rule
-	FBranchRule BranchRule
-	{
-		.Turn = EMapTurn::Right,
-		.StepInterval = 2,
-		.SpawnProbability = 1.f,
-	};
-	BranchRule.Sections.Add(FMapSegmentSection(1, EMapRole::None, "Plain"));
-	Layout.BranchRules.Add(BranchRule);
+	
+	Layout.BranchRules = Config.BranchRules;
 
 	return Layout;
 }

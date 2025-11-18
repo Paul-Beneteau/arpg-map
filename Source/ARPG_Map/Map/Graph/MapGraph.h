@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ARPG_Map/Map/Types/MapTypes.h"
 #include "MapGraph.generated.h"
 
 struct FMapGraphCoord;
@@ -35,16 +36,27 @@ struct FMapGraph
 	GENERATED_BODY()
 
 public:
-	// Default constructor needed by Unreal Engine
 	FMapGraph() = default;	
-	FMapGraph(int32 InRows, int32 InColumns);
+	FMapGraph(const int32 InRows, const int32 InColumns);
 	
-	void Resize(const int32 InRows, const int32 InColumns);
-	
-	FMapGraphCell& At(const FMapGraphCoord& Coord);
+	FORCEINLINE FMapGraphCell& At(const FMapGraphCoord& Coord)
+	{
+		check(Cells.IsValidIndex(Coord.Row * Columns + Coord.Column));
+		return Cells[Coord.Row * Columns + Coord.Column];
+	}
 
-	int32 GetRows() const { return Rows; }
-	int32 GetColumns() const { return Columns; }
+	FORCEINLINE const FMapGraphCell& At(const FMapGraphCoord& Coord) const
+	{
+		check(Cells.IsValidIndex(Coord.Row * Columns + Coord.Column));		
+		return Cells[Coord.Row * Columns + Coord.Column];
+	}
+	
+	FMapGraphCoord GetStart() const;
+	
+	FORCEINLINE int32 GetRows() const { return Rows; }
+	FORCEINLINE int32 GetColumns() const { return Columns; }
+
+	FORCEINLINE void Reset() { Cells.Reset(); }
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

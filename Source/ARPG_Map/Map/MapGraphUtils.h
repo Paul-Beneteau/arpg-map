@@ -4,8 +4,6 @@
 #include "ARPG_Map/Map/Types/MapTypes.h"
 
 struct FMapGraph;
-enum class EMapTurn : uint8;
-enum class EMapDirection : uint8;
 
 namespace MapUtils
 {
@@ -126,6 +124,6 @@ namespace MapUtils
 		}
 	}
 	
-	void PrintGraph(FMapGraph& MapGraph, const UWorld* InWorld);
+	void PrintGraph(FMapGraph& MapGraph, const UWorld* InWorld, const int32 CellSize);
 }
 

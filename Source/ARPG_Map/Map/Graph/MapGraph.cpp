@@ -2,24 +2,22 @@
 
 #include "ARPG_Map/Map/Types/MapTypes.h"
 
-
-FMapGraph::FMapGraph(int32 InRows, int32 InColumns)
-	: Rows(InRows), Columns(InColumns)
+FMapGraph::FMapGraph(const int32 InRows, const int32 InColumns)
+	: Rows(InRows),	Columns(InColumns)
 {
 	Cells.SetNum(Rows * Columns);
 }
 
-void FMapGraph::Resize(const int32 InRows, const int32 InColumns)
+FMapGraphCoord FMapGraph::GetStart() const
 {
-	Rows = InRows;
-	Columns = InColumns;
+	for (int32 Row = 0; Row < Rows; ++Row)
+	{
+		for (int32 Column = 0; Column < Columns; ++Column)
+		{ 
+			if (Cells[Row * Columns + Column].Role == EMapRole::MainPathStart)
+				return FMapGraphCoord(Row, Column);
+		}
+	}
 
-	Cells.Reset();
-	Cells.SetNum(Rows * Columns);
-}
-
-FMapGraphCell& FMapGraph::At(const FMapGraphCoord& Coord)
-{
-	check (Cells.IsValidIndex(Coord.Row * Columns + Coord.Column));
-	return Cells[Coord.Row * Columns + Coord.Column];
+	return FMapGraphCoord::None;
 }

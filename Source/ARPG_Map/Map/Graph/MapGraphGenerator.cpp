@@ -3,37 +3,66 @@
 #include "MapGraph.h"
 #include "ARPG_Map/Map/Layout/MapLayout.h"
 
-void AMapGraphGenerator::BeginPlay()
+FMapGraph UMapGraphGenerator::BuildMapGraph()
 {
-	Super::BeginPlay();
+	CachedMapGraph = FMapGraph(Rows, Columns);
 	
-	// TODO: Load layout config from data asset
-	LayoutConfig.Layout = EMapLayout::U;
-	LayoutConfig.SegmentMaxLength = 3;
-	LayoutConfig.SegmentMinLength = 2;
-	LayoutConfig.Themes.Add("Plain");
-
-	Rows = 5;
-	Columns = 5;
-	CachedMapGraph.Resize(Rows, Columns);
-	
-	BuildMapGraph();
-	
-	MapUtils::PrintGraph(CachedMapGraph, GetWorld());
-}
-
-void AMapGraphGenerator::BuildMapGraph()
-{
-	GenerateLayout();
-
-	if (CachedLayout.IsValid())
+	const FMapLayoutConfig LayoutConfig = PickLayoutConfig();
+	if (!LayoutConfig.IsValid())
 	{
-		PlaceMainPath();	
-		PlaceBranches();
+		UE_LOG(LogTemp, Error, TEXT("AMapGraphGenerator: Couldn't select a valid layout from LayoutConfigTable"));
+		return FMapGraph();
 	}
+	
+	GenerateLayout(LayoutConfig);
+
+	if (!CachedLayout.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("AMapGraphGenerator: Couldn't generate a valid layout"));
+		return FMapGraph();
+	}
+
+	PlaceMainPath();	
+	PlaceBranches();
+
+	return CachedMapGraph;
 }
 
-void AMapGraphGenerator::GenerateLayout()
+FMapLayoutConfig UMapGraphGenerator::PickLayoutConfig()
+{
+	if (!LayoutConfigTable)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AMapGraphGenerator: No LayoutConfigTable assigned"));
+		return FMapLayoutConfig();
+	}
+
+	TArray<FMapLayoutConfig*> LayoutConfigs;
+	LayoutConfigTable->GetAllRows<FMapLayoutConfig>(TEXT("LayoutConfigs"), LayoutConfigs);
+    
+	if (LayoutConfigs.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("LayoutConfigTable is empty"));
+		return FMapLayoutConfig();
+	}
+    
+	float TotalWeight = 0.f;
+	for (const FMapLayoutConfig* LayoutConfig : LayoutConfigs)
+		TotalWeight += LayoutConfig->Weight;
+    
+	float RandomWeight = FMath::FRandRange(0.0f, TotalWeight);
+	float CurrentWeight = 0.0f;
+    
+	for (const FMapLayoutConfig* Config : LayoutConfigs)
+	{
+		CurrentWeight += Config->Weight;
+		if (RandomWeight <= CurrentWeight)
+			return *Config;
+	}
+    
+	return FMapLayoutConfig();	
+}
+
+void UMapGraphGenerator::GenerateLayout(const FMapLayoutConfig& LayoutConfig)
 {
 	for (int32 RetryCount = 0; RetryCount < MaxLayoutGenerationRetries; RetryCount++)
 	{
@@ -47,7 +76,7 @@ void AMapGraphGenerator::GenerateLayout()
 	} 
 }
 
-void AMapGraphGenerator::PlaceMainPath()
+void UMapGraphGenerator::PlaceMainPath()
 {			
 	for (const FMapSegment& Segment : CachedLayout.MainPath.Segments)
 		PlaceSegment(Segment);
@@ -57,13 +86,13 @@ void AMapGraphGenerator::PlaceMainPath()
 	CachedMapGraph.At(CachedLayout.MainPath.GetCells().Last()).Role = EMapRole::MainPathEnd;
 }
 
-void AMapGraphGenerator::PlaceBranches()
+void UMapGraphGenerator::PlaceBranches()
 {
 	for (const FBranchRule& BranchRule : CachedLayout.BranchRules)
 		PlaceBranchesForRule(BranchRule);
 }
 
-void AMapGraphGenerator::PlaceBranchesForRule(const FBranchRule& BranchRule)
+void UMapGraphGenerator::PlaceBranchesForRule(const FBranchRule& BranchRule)
 {	
 	for (int32 Index = 0; Index < CachedLayout.MainPath.GetCells().Num(); Index += BranchRule.StepInterval)
 	{		
@@ -82,7 +111,7 @@ void AMapGraphGenerator::PlaceBranchesForRule(const FBranchRule& BranchRule)
 	}
 }
 
-void AMapGraphGenerator::PlaceSegment(const FMapSegment& Segment)
+void UMapGraphGenerator::PlaceSegment(const FMapSegment& Segment)
 {	
 	for (FMapGraphCoord CurrentCell : Segment.GetCells())
 	{
@@ -97,12 +126,12 @@ void AMapGraphGenerator::PlaceSegment(const FMapSegment& Segment)
 	}
 }
 
-void AMapGraphGenerator::PlaceCell(const FMapGraphCoord Coord, const FMapGraphCell& Cell)
+void UMapGraphGenerator::PlaceCell(const FMapGraphCoord Coord, const FMapGraphCell& Cell)
 {
 	CachedMapGraph.At(Coord) = Cell;
 }
 
-void AMapGraphGenerator::ConnectCells(const FMapGraphCoord FirstCell, const FMapGraphCoord SecondCell)
+void UMapGraphGenerator::ConnectCells(const FMapGraphCoord FirstCell, const FMapGraphCoord SecondCell)
 {
 	if (!MapUtils::IsInsideBounds(Rows, Columns, FirstCell) || !MapUtils::IsInsideBounds(Rows, Columns, SecondCell))
 		return;

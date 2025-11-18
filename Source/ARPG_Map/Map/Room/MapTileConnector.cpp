@@ -1,8 +1,8 @@
-#include "MapRoomConnector.h"
+#include "MapTileConnector.h"
 
-#include "MapRoom.h"
+#include "MapTile.h"
 
-void UMapRoomConnector::DrawDebug(const int32 RoomColumn, const int32 RoomRow)
+void UMapTileConnector::DrawDebug(const int32 RoomColumn, const int32 RoomRow)
 {
 	FColor Color;
 	switch (Direction)

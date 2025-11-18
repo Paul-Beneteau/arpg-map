@@ -3,13 +3,13 @@
 #include "CoreMinimal.h"
 #include "ARPG_Map/Map/MapGraphUtils.h"
 #include "Components/ArrowComponent.h"
-#include "MapRoomConnector.generated.h"
+#include "MapTileConnector.generated.h"
 
-class AMapRoom;
+class AMapTile;
 
 // Connector representing an entry between two rooms.
 UCLASS(ClassGroup=(Map), meta=(BlueprintSpawnableComponent))
-class ARPG_MAP_API UMapRoomConnector : public UArrowComponent
+class ARPG_MAP_API UMapTileConnector : public UArrowComponent
 {
 	GENERATED_BODY()
 

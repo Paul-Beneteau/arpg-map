@@ -30,7 +30,7 @@ struct FMapLayout
 
 // Configurations to generate a layout.
 USTRUCT(BlueprintType)
-struct FMapLayoutConfig
+struct FMapLayoutConfig : public FTableRowBase
 {
 	GENERATED_BODY()
 	
@@ -38,12 +38,23 @@ struct FMapLayoutConfig
 	EMapLayout Layout { EMapLayout::None };
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SegmentMinLength { 0 };
+	int32 SegmentMinLength = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SegmentMaxLength { 0 };
+	int32 SegmentMaxLength = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FName> Themes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FBranchRule> BranchRules;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Weight = 0.f;
+
+	FORCEINLINE bool IsValid() const
+	{
+		return Layout != EMapLayout::None && SegmentMinLength > 0 && SegmentMaxLength >= SegmentMinLength && !Themes.IsEmpty();
+	}
 };
 
 // Generate a map layout composed of the main path and his branches based on FMapLayoutConfig.

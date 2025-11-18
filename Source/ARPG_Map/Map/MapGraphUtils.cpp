@@ -73,9 +73,8 @@ namespace MapUtils
 	void DrawCell(const UWorld* World, const FVector& Location, const FMapGraphCell& Cell, float Size)
 	{
 		const FColor Color = GetCellColor(Cell);
-		const FVector HalfSize(Size * 0.8f / 2.0f, Size * 0.8f / 2.0f, 1.0f);
-        
-		DrawDebugBox(World, Location, HalfSize, Color, true, 0.f, 0, 3.f);
+		const FVector HalfSize(Size * 0.99f / 2.0f, Size * 0.99f / 2.0f, 1.0f);
+		DrawDebugBox(World, Location, HalfSize, Color, true, 0.f, 0, 10.f);
 	}
     
 	void DrawConnectors(const UWorld* World, const FVector& Location, const FMapGraphCell& Cell, float Size)
@@ -83,25 +82,25 @@ namespace MapUtils
 		for (EMapDirection Direction : Cell.Connectors)
 		{
 			const FVector Offset = GetConnectorOffset(Direction, Size);
-			DrawDebugLine(World, Location + Offset, Location + (Offset * 1.2f), FColor::Blue, true, 0.f,
-				0, 4.f);
+			DrawDebugLine(World, Location + Offset, Location + (Offset * 1.2f), FColor::Purple, true, 0.f,
+				0, 10.f);
 		}
 	}
 	
-	void PrintGraph(FMapGraph& MapGraph, const UWorld* InWorld)
+	void PrintGraph(FMapGraph& MapGraph, const UWorld* InWorld, const int32 CellSize)
 	{
 		for (int32 Row = 0; Row < MapGraph.GetRows(); ++Row)
 		{
 			for (int32 Column = 0; Column < MapGraph.GetColumns(); ++Column)
 			{
 				const FMapGraphCell Cell = MapGraph.At(FMapGraphCoord(Row, Column));
-				constexpr float Size = 100.0f;    
-				const FVector Location((-Row) * Size, Column * Size, 120.0f);			
-            
-				DrawCell(InWorld, Location, Cell, Size);
+				
+				FVector Location((-Row) * CellSize, Column * CellSize, 10.0f);	
+				
+				DrawCell(InWorld, Location, Cell, CellSize);
             
 				if (Cell.IsUsed())
-					DrawConnectors(InWorld, Location, Cell, Size);
+					DrawConnectors(InWorld, Location, Cell, CellSize);
 			}
 		}	
 	}
