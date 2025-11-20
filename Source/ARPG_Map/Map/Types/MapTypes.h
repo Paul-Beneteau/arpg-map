@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "MapTypes.generated.h"
 
+// Cardinal directions
 UENUM(BlueprintType)
 enum class EMapDirection : uint8
 {
@@ -13,24 +14,24 @@ enum class EMapDirection : uint8
 	West
 };
 
-// Represent a turn relative to a direction (e.g., right turn with North direction is the East Direction). Used for branches generation
+// Possible rotation of EMapDirection
 UENUM(BlueprintType)
-enum class EMapTurn : uint8
+enum class EMapRotation : uint8
 {
 	None,
-	Left,
-	Right
+	Degree0,
+	Degree90,
+	Degree180,
+	Degree270
 };
 
-// Function in the map (start, main path, end, wall, etc.)
+// Role of the tile (Corridor, river, wall, etc.)
 UENUM(BlueprintType)
-enum class EMapRole : uint8
+enum class EMapTileType : uint8
 {
 	None,
-	MainPathStart,
-	MainPath,
-	MainPathEnd,
-	Wall
+	Corridor,
+	River
 };
 
 USTRUCT(BlueprintType)

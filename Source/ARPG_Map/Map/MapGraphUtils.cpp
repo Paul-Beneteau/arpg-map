@@ -2,9 +2,124 @@
 
 #include "Graph/MapGraph.h"
 #include "ARPG_Map/Map/Types/MapTypes.h"
+#include "Layout/MapLayout.h"
 
 namespace MapUtils
 {
+	// Convert a direction to yaw with the north being 0 for convention
+	FORCEINLINE int32 DirectionToYaw(EMapDirection Direction)
+	{
+		switch(Direction)
+		{
+		case EMapDirection::North:
+			return 0;
+			
+		case EMapDirection::East:
+			return 90;
+			
+		case EMapDirection::South:
+			return 180;
+			
+		case EMapDirection::West:
+			return 270;
+			
+		default:
+			return 0;
+		}
+	}
+
+	FORCEINLINE EMapRotation YawToRotation(int32 Yaw)
+	{
+		// Normalize yaw between 0 and 360
+		Yaw = Yaw % 360;
+		if (Yaw < 0)
+			Yaw += 360;
+		
+		switch(Yaw)
+		{
+		case 0:
+			return EMapRotation::Degree0;
+			
+		case 90:
+			return EMapRotation::Degree90;
+			
+		case 180:
+			return EMapRotation::Degree180;
+			
+		case 270:
+			return EMapRotation::Degree270;
+			
+		default:
+			return EMapRotation::None;
+		}
+	}
+
+	int32 RotationToYaw(EMapRotation Rotation)
+	{
+		switch(Rotation)
+		{
+		case EMapRotation::Degree0:
+			return 0;
+			
+		case EMapRotation::Degree90:
+			return 90;
+			
+		case EMapRotation::Degree180:
+			return 180;
+			
+		case EMapRotation::Degree270:
+			return 270;
+			
+		default:
+			return 0;
+		}
+	}
+
+	// Convert a yaw to a direction with the north being 0 for convention
+	FORCEINLINE EMapDirection YawToDirection(int32 Yaw)
+	{
+		// Normalize yaw between 0 and 360
+		Yaw = Yaw % 360;
+		if (Yaw < 0)
+			Yaw += 360;
+        
+		switch(Yaw)
+		{
+		case 0:
+			return EMapDirection::North;
+			
+		case 90:
+			return EMapDirection::East;
+			
+		case 180:
+			return EMapDirection::South;
+			
+		case 270:
+			return EMapDirection::West;
+			
+		default:
+			return EMapDirection::None;
+		}
+	}
+	
+	EMapDirection RotateClockwise(EMapDirection Direction, EMapRotation Rotation)
+	{
+		if (Direction == EMapDirection::None)
+			return EMapDirection::None;
+    
+   		const int32 Yaw = DirectionToYaw(Direction) + RotationToYaw(Rotation);
+		return YawToDirection(Yaw);
+	}
+
+	EMapRotation GetRotationBetween(EMapDirection FromDirection, EMapDirection TowardDirection)
+	{
+		if (FromDirection == EMapDirection::None || TowardDirection == EMapDirection::None)
+			return EMapRotation::None;
+  
+		const int32 Yaw = DirectionToYaw(TowardDirection) - DirectionToYaw(FromDirection);    
+		return YawToRotation(Yaw);
+	}
+	
 	EMapDirection GetDirectionToward(const FMapGraphCoord& FromCell, const FMapGraphCoord& TowardCell)
 	{
 		const int32 RowDelta = TowardCell.Row - FromCell.Row;
@@ -33,75 +148,13 @@ namespace MapUtils
 		return EMapDirection::None;
 	}
 
-	FColor GetCellColor(const FMapGraphCell& Cell)
+	int32 GetPathLength(const TArray<FMapSegment>& Path)
 	{
-		if (!Cell.IsUsed())
-			return FColor::Black;
-            
-		switch (Cell.Role)
-		{
-		case EMapRole::MainPathStart:
-			return FColor::Green;
-		case EMapRole::MainPathEnd:
-			return FColor::Red;
-		case EMapRole::MainPath:
-			return FColor::Blue;
-		default:
-			return FColor::Turquoise;
-		}
-	}
-    
-	FVector GetConnectorOffset(EMapDirection Direction, float CellSize)
-	{
-		const float Offset = CellSize * 0.9f / 2.0f;
-        
-		switch (Direction)
-		{
-		case EMapDirection::North:
-			return FVector(Offset, 0, 0);
-		case EMapDirection::South:
-			return FVector(-Offset, 0, 0);
-		case EMapDirection::West:
-			return FVector(0, -Offset, 0);
-		case EMapDirection::East:
-			return FVector(0, Offset, 0);
-		default:
-			return FVector::ZeroVector;
-		}
-	}
-    
-	void DrawCell(const UWorld* World, const FVector& Location, const FMapGraphCell& Cell, float Size)
-	{
-		const FColor Color = GetCellColor(Cell);
-		const FVector HalfSize(Size * 0.99f / 2.0f, Size * 0.99f / 2.0f, 1.0f);
-		DrawDebugBox(World, Location, HalfSize, Color, true, 0.f, 0, 10.f);
-	}
-    
-	void DrawConnectors(const UWorld* World, const FVector& Location, const FMapGraphCell& Cell, float Size)
-	{
-		for (EMapDirection Direction : Cell.Connectors)
-		{
-			const FVector Offset = GetConnectorOffset(Direction, Size);
-			DrawDebugLine(World, Location + Offset, Location + (Offset * 1.2f), FColor::Purple, true, 0.f,
-				0, 10.f);
-		}
-	}
-	
-	void PrintGraph(FMapGraph& MapGraph, const UWorld* InWorld, const int32 CellSize)
-	{
-		for (int32 Row = 0; Row < MapGraph.GetRows(); ++Row)
-		{
-			for (int32 Column = 0; Column < MapGraph.GetColumns(); ++Column)
-			{
-				const FMapGraphCell Cell = MapGraph.At(FMapGraphCoord(Row, Column));
-				
-				FVector Location((-Row) * CellSize, Column * CellSize, 10.0f);	
-				
-				DrawCell(InWorld, Location, Cell, CellSize);
-            
-				if (Cell.IsUsed())
-					DrawConnectors(InWorld, Location, Cell, CellSize);
-			}
-		}	
+		int32 PathLength = 0;
+		
+		for (const FMapSegment& Segment : Path)
+			PathLength += Segment.Length;
+
+		return PathLength;
 	}
 }

@@ -17,9 +17,11 @@ struct FMapTileSpawnData
 	GENERATED_BODY()
     
 	UPROPERTY()
-	TSubclassOf<AMapTile> TileClass;
+	TSubclassOf<AMapTile> TileClass = nullptr;
 	
-	FMapGraphCoord Coord;
+	FMapGraphCoord Coord = FMapGraphCoord::None;
+
+	FRotator Rotation = FRotator::ZeroRotator;
 
 	FORCEINLINE FVector GetWorldLocation(int32 TileSize) const 
 	{
@@ -35,7 +37,7 @@ class ARPG_MAP_API UMapTileSelector : public UActorComponent
 
 public:
 	// Selects a random valid tile for each used cell in the graph.
-	TArray<FMapTileSpawnData> SelectMapGraphTiles(const FMapGraph& Graph);
+	TArray<FMapTileSpawnData> SelectTiles(const FMapGraph& Graph);
 	
 protected:
 	// Tile templates available for selection.
@@ -43,8 +45,19 @@ protected:
 	TArray<UMapTileTemplate*> TileTemplates;
 
 	// Picks a tile template using weighted random selection from valid tile templates
-	const UMapTileTemplate* PickTileTemplate(const FMapGraphCell& Cell);
-
+	UMapTileTemplate* PickTemplateForCell(const FMapGraphCell& Cell);
+	// Pick a random matching tile rotation for the cell
+	FRotator PickTemplateRotationForCell(const UMapTileTemplate& Template, const FMapGraphCell& Cell) const;
+	
 	// Get possible valid tile templates for the graph cell
-	TArray<const UMapTileTemplate*> GetCandidateTileTemplates(const FMapGraphCell& Cell);
+	TArray<UMapTileTemplate*> GetMatchingTemplates(const FMapGraphCell& Cell);
+
+	// Check if a template can be selected for the cell. Check if the template matches for all possible rotation of the tile.
+	bool DoesTemplateMatchCell(const UMapTileTemplate* Template, const FMapGraphCell& Cell) const;
+	// Check if a template can be selected for the cell with a specific rotation of the template
+	bool DoesTemplateMatchWithRotation(const UMapTileTemplate* Template, const FMapGraphCell& Cell, EMapRotation Rotation) const;
+
+	// Get template matching rotations with the cell
+	TArray<FRotator> GetMatchingRotations(const UMapTileTemplate* Template, const FMapGraphCell& Cell) const;
+
 };

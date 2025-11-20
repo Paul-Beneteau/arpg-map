@@ -32,6 +32,11 @@ public:
 	void ShowGraph() const;
 	UFUNCTION(BlueprintCallable)
 	void HideGraph() const;
+
+	UFUNCTION(BlueprintCallable)
+	void ShowLayoutInfo();
+	UFUNCTION(BlueprintCallable)
+	void HideLayoutInfo();
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Map Generation")
@@ -48,5 +53,10 @@ protected:
 
 	FMapGraph CachedMapGraph;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Map Generation")
+	TSubclassOf<UUserWidget> LayoutWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UUserWidget> LayoutWidget ;
+	
 	void MovePlayerToStart(const FMapGraph& Graph);
 };

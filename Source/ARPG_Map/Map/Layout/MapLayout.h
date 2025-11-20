@@ -5,39 +5,12 @@
 #include "ARPG_Map/Map/Types/MapTypes.h"
 #include "MapLayout.generated.h"
 
-// Represent main path shape of the map
-UENUM(BlueprintType)
-enum class EMapLayout : uint8
-{
-	None,
-	Straight,
-	L,
-	Z,
-	S,
-	U,
-	Cross,
-	Ring,
-	Fork
-};
+// =============================================
+// Layout structs (Path is an array of segments)
+// =============================================
 
-// Part of a segment which have a theme (visual style) and a role (What the cell represent)
-USTRUCT(BlueprintType)
-struct FMapSegmentSection
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Length = 0;
-		
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapRole Role = EMapRole::None;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName Theme = "None";
-};
-
-// It represents a straight line of cells in the map graph. It has a strat coordinate, a direction and length. It is composed of sections that can
-// define different themes in role in the same segment.
+// Represents a straight line of cells in the map graph with a start coordinate, direction, length. It has a type defining what it represents
+// (Corridor, river, wall, etc.) and a theme defining visuals.
 USTRUCT(BlueprintType)
 struct FMapSegment
 {
@@ -45,44 +18,81 @@ struct FMapSegment
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FMapGraphCoord Start = FMapGraphCoord::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Length = 0;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EMapDirection Direction = EMapDirection::None;
 	
+	// what it represents (Corridor, river, wall, etc.)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FMapSegmentSection> Sections;
-	
-	int32 GetLength() const;
+	EMapTileType Type = EMapTileType::None;
 
-	// Get all the cell of the segment
-	TArray<FMapGraphCoord> GetCells() const;
-
-	// Get the current section at the graph coordinate
-	FMapSegmentSection GetSection(const FMapGraphCoord Coord) const;
+	// Define visuals
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName Theme = "None";
 	
 	// Get the coordinate of the call at the segment index. Index represent the cell of the segment
-	FORCEINLINE FMapGraphCoord GetCoordAt(const int32 Index) const
-	{
-		check(Index < GetLength());
-		return Start.Stepped(Direction, Index);
-	}
+	FORCEINLINE FMapGraphCoord GetCoordAt(const int32 Index) const { return Start.Stepped(Direction, Index); }
 	
-	bool IsValid() const { return GetLength() > 0 && Direction != EMapDirection::None; };
-
-	void Print() const { UE_LOG(LogTemp, Warning, TEXT("Segment %d-%d | Length %d | Direction %s"),
-		Start.Row, Start.Column, GetLength(), *MapUtils::GetDirectionText(Direction)); };
+	FORCEINLINE FMapGraphCoord End() const { return Start.Stepped(Direction, Length - 1); }
+	
+	FORCEINLINE bool IsValid() const { return Length > 0 && Direction != EMapDirection::None; };
 };
 
-// Define branch generation behavior, with their direction, interval, number.
+// =======================================
+// Layout generation configuration structs
+// =======================================
+
+// Shape of the Path
+UENUM(BlueprintType)
+enum class EMapPathLayout : uint8
+{
+	None,
+	Straight,
+	L,
+	U,	
+	Stairs,
+	Square
+};
+
+// Configuration to generate a path
 USTRUCT(BlueprintType)
-struct FBranchRule
+struct FMapPathConfig
 {
 	GENERATED_BODY()
 
-	// Direction relative to the main path 
-	UPROPERTY(EditAnywhere)
-	EMapTurn Turn = EMapTurn::None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EMapPathLayout Layout = EMapPathLayout::None;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 SegmentMinLength = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 SegmentMaxLength = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EMapTileType Type = EMapTileType::None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName Theme;
+
+	FORCEINLINE bool IsValid() const
+	{
+		return Layout != EMapPathLayout::None && SegmentMinLength > 0 && SegmentMaxLength >= SegmentMinLength;
+	}
+};
+
+// Configuration to generate a branch from a path
+USTRUCT(BlueprintType)
+struct FMapBranchConfig
+{
+	GENERATED_BODY()
+
+	// RotationFromMainPath relative to the main path direction
+	UPROPERTY(EditAnywhere)
+	EMapRotation RotationFromMainPath = EMapRotation::None;
+
+	// Interval between two branches
 	UPROPERTY(EditAnywhere)
 	int32 StepInterval = 0;
 
@@ -90,38 +100,48 @@ struct FBranchRule
 	UPROPERTY(EditAnywhere)
 	float SpawnProbability = 0.f;
 
-	UPROPERTY(EditAnywhere)
-	TArray<FMapSegmentSection> Sections;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FMapPathConfig PathConfig;
 };
 
-// Main path of the map graph composed of segments.
+// Configurations to generate a layout.
 USTRUCT(BlueprintType)
-struct FMapMainPath
+struct FMapLayoutConfig : public FTableRowBase
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FMapSegment> Segments;
+	FMapPathConfig MainPathConfig;
 
-	UPROPERTY(EditDefaultsOnly)
-	FMapGraphCoord Start = FMapGraphCoord::None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FMapBranchConfig> BranchConfigs;
 
-	// Get all cells of the path
-	TArray<FMapGraphCoord> GetCells() const;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Weight = 0.f;
 
-	// Get segment for an index of path.
-	FMapSegment GetSegmentAt(int32 PathIndex) const;
-	// Get segment for a coordinate of path.
-	FMapSegment GetSegmentAt(FMapGraphCoord Cell) const;
-
-	FORCEINLINE void Reset()
+	FORCEINLINE bool IsValid() const
 	{
-		Segments.Reset();
-		Start = FMapGraphCoord::None;
-	};
+		return MainPathConfig.IsValid();
+	}
+};
 
-	FORCEINLINE bool IsValid()
+// Constraint for generating the path.
+USTRUCT(BlueprintType)
+struct FMapPathConstraints
+{
+	GENERATED_BODY()
+
+	// Start call of the first segment
+	FMapGraphCoord Start;
+
+	// Direction of the first segment
+	EMapDirection StartDirection;
+
+	// Bounds of the path. Should be set with the rows and columns of the graph
+	FMapGraphCoord Bounds = FMapGraphCoord(0, 0);
+
+	bool IsInBounds(const FMapGraphCoord& Coord) const
 	{
-		return Start != FMapGraphCoord::None && GetCells().Num() >= 2;
+		return Coord.Row >= 0 && Coord.Row <= Bounds.Row && Coord.Column >= 0 && Coord.Column <= Bounds.Column;
 	}
 };

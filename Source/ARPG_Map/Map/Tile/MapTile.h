@@ -20,6 +20,4 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> Root;
-
-	virtual void BeginPlay() override;
 };

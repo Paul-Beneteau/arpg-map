@@ -3,99 +3,29 @@
 #include "CoreMinimal.h"
 #include "ARPG_Map/Map/Types/MapTypes.h"
 
+struct FMapSegment;
 struct FMapGraph;
 
 namespace MapUtils
 {
-	// Rotate direction 90 degree left
-	FORCEINLINE EMapDirection RotateLeft(EMapDirection Direction)
-	{
-		switch(Direction)
-		{
-		case EMapDirection::North:
-			return EMapDirection::West;
-		
-		case EMapDirection::West:
-			return EMapDirection::South;
-		
-		case EMapDirection::South:
-			return EMapDirection::East;
+	int32 RotationToYaw(EMapRotation Rotation);
+	
+	// Rotate a direction clockwise by the specified rotation. RotateClockwise(North, Degree90) -> East
+	EMapDirection RotateClockwise(EMapDirection Direction, EMapRotation Rotation);
 
-		case EMapDirection::East:
-			return EMapDirection::North;
-		
-		default:
-			return EMapDirection::None;
-		}
-	}
-	// Rotate direction 90 degree Right
-	FORCEINLINE EMapDirection RotateRight(EMapDirection Direction)
-	{
-		switch(Direction)
-		{
-		case EMapDirection::North:
-			return EMapDirection::East;
-		
-		case EMapDirection::West:
-			return EMapDirection::North;
-		
-		case EMapDirection::South:
-			return EMapDirection::West;
-
-		case EMapDirection::East:
-			return EMapDirection::South;
-		
-		default:
-			return EMapDirection::None;
-		}
-	}
-
+	// Get the rotation between two direction
+	EMapRotation GetRotationBetween(EMapDirection FromDirection, EMapDirection TowardDirection);
+	
 	// Get opposite direction
 	FORCEINLINE EMapDirection Opposite(EMapDirection Direction)
 	{
-		switch(Direction)
-		{
-		case EMapDirection::North:
-			return EMapDirection::South;
-		
-		case EMapDirection::West:
-			return EMapDirection::East;
-		
-		case EMapDirection::South:
-			return EMapDirection::North;
-
-		case EMapDirection::East:
-			return EMapDirection::West;
-		
-		default:
-			return EMapDirection::None;
-		}
+		return RotateClockwise(Direction, EMapRotation::Degree180);
 	}
+	
 	// Get both perpendicular direction
 	FORCEINLINE TArray<EMapDirection> Perpendicular(EMapDirection Direction)
 	{
-		return { RotateLeft(Direction), RotateRight(Direction) };
-	}
-
-	// Get the turn direction (e.g., North segment with a right turn gives the east direction)
-	FORCEINLINE EMapDirection GetTurnDirection(EMapDirection Direction, EMapTurn Turn)
-	{
-		switch (Turn)
-		{
-		case EMapTurn::Left:
-			return RotateLeft(Direction);
-			
-		case EMapTurn::Right:
-			return RotateRight(Direction);
-			
-		default:
-			return EMapDirection::None;
-		}
-	}
-
-	FORCEINLINE bool IsInsideBounds(const int32 Rows, const int32 Columns, const FMapGraphCoord& Coord)
-	{
-		return Coord.Row >= 0 && Coord.Row < Rows	&& Coord.Column >= 0 && Coord.Column < Columns;
+		return { RotateClockwise(Direction, EMapRotation::Degree270), RotateClockwise(Direction, EMapRotation::Degree90) };
 	}
 	
 	// Get the direction of a cell toward another cell
@@ -123,7 +53,69 @@ namespace MapUtils
 			return "None";
 		}
 	}
+
+	FORCEINLINE bool IsInsideBounds(const int32 Rows, const int32 Columns, const FMapGraphCoord& Coord)
+	{
+		return Coord.Row >= 0 && Coord.Row < Rows	&& Coord.Column >= 0 && Coord.Column < Columns;
+	}
+
+	int32 GetPathLength(const TArray<FMapSegment>& Path);
 	
 	void PrintGraph(FMapGraph& MapGraph, const UWorld* InWorld, const int32 CellSize);
+
+	template<typename T>
+	T* PickWeightedRandom(const TArray<T*>& Items, TFunction<float(const T*)> GetWeight)
+	{
+		float TotalWeight = 0.f;		
+		for (const T* Item : Items)
+		{
+			if (Item)
+				TotalWeight += GetWeight(Item);
+		}
+
+		if (TotalWeight <= 0.0f)
+		{
+			UE_LOG(LogTemp, Error, TEXT("PickWeightedRandom: Total weight is 0"));
+			return nullptr;
+		}
+		
+		float RandomWeight = FMath::FRandRange(0.0f, TotalWeight);
+		float CurrentWeight = 0.0f;
+    
+		for (T* Item : Items)
+		{
+			CurrentWeight += GetWeight(Item);
+			if (RandomWeight <= CurrentWeight)
+				return Item;
+		}
+    
+		return nullptr;
+	}
+
+	template<typename T>
+	T PickWeightedRandom(const TArray<T>& Items, TFunction<float(const T&)> GetWeight)
+	{
+		float TotalWeight = 0.f;		
+		for (const T& Item : Items)
+			TotalWeight += GetWeight(Item);
+
+		if (TotalWeight <= 0.0f)
+		{
+			UE_LOG(LogTemp, Error, TEXT("PickWeightedRandom: Total weight is 0"));
+			return T();
+		}
+		
+		float RandomWeight = FMath::FRandRange(0.0f, TotalWeight);
+		float CurrentWeight = 0.0f;
+    
+		for (const T& Item : Items)
+		{
+			CurrentWeight += GetWeight(Item);
+			if (RandomWeight <= CurrentWeight)
+				return Item;
+		}
+    
+		return T();
+	}
 }
 

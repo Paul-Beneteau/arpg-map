@@ -15,13 +15,5 @@ class ARPG_MAP_API UMapTileConnector : public UArrowComponent
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapDirection Direction = EMapDirection::North;
-	
-	void DrawDebug(const int32 RoomColumn, const int32 RoomRow);
-	
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Width = 300.f;
-
-	bool bUsed = false;
+	EMapDirection Direction = EMapDirection::None;
 };

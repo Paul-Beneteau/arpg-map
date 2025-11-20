@@ -5,23 +5,26 @@
 #include "MapGraph.generated.h"
 
 struct FMapGraphCoord;
-enum class EMapRole : uint8;
 enum class EMapDirection : uint8;
 
-// Cell of the map graph. It has a role (What the cell represent), a theme (visual style) and connectors to links adjacent cells
+// Cell of the map graph. It has a Type (What the cell represent, corridor, etc), a theme (visual style) and connectors to links adjacent cells
 USTRUCT(BlueprintType)
 struct FMapGraphCell
 {
 	GENERATED_BODY()
 
-	// The function of the cell (start, main path, end, wall, etc.)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapRole Role;
-
+	EMapTileType Type = EMapTileType::None;
+	
 	// Visual theme
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName Theme;
+	FName Theme = "None";
 
+	// TODO: make it an array if a cell is a crossroad. Direction of the path the cell is in. For example, if it is part of river, it has the direction
+	// of the river
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EMapDirection FlowDirection = EMapDirection::None;
+	
 	// Links with adjacent cells
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<EMapDirection> Connectors;
@@ -36,34 +39,19 @@ struct FMapGraph
 	GENERATED_BODY()
 
 public:
-	FMapGraph() = default;	
-	FMapGraph(const int32 InRows, const int32 InColumns);
-	
-	FORCEINLINE FMapGraphCell& At(const FMapGraphCoord& Coord)
-	{
-		check(Cells.IsValidIndex(Coord.Row * Columns + Coord.Column));
-		return Cells[Coord.Row * Columns + Coord.Column];
-	}
-
-	FORCEINLINE const FMapGraphCell& At(const FMapGraphCoord& Coord) const
-	{
-		check(Cells.IsValidIndex(Coord.Row * Columns + Coord.Column));		
-		return Cells[Coord.Row * Columns + Coord.Column];
-	}
-	
-	FMapGraphCoord GetStart() const;
-	
-	FORCEINLINE int32 GetRows() const { return Rows; }
-	FORCEINLINE int32 GetColumns() const { return Columns; }
-
-	FORCEINLINE void Reset() { Cells.Reset(); }
-	
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FMapGraphCell> Cells;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Rows { 0 };
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Columns { 0 };
+	int32 Rows = 0;
+	int32 Columns = 0;
+
+	FMapGraphCoord MainPathStart = FMapGraphCoord(0, 0);
+	FMapGraphCoord MainPathEnd = FMapGraphCoord(0, 0);
+	
+	FMapGraph() = default;	
+	FMapGraph(const int32 InRows, const int32 InColumns) : Rows(InRows), Columns(InColumns) { Cells.SetNum(Rows * Columns); };
+	
+	FORCEINLINE FMapGraphCell& At(const FMapGraphCoord& Coord)	{ return Cells[Coord.Row * Columns + Coord.Column]; }
+	FORCEINLINE const FMapGraphCell& At(const FMapGraphCoord& Coord) const { return Cells[Coord.Row * Columns + Coord.Column]; }
+	
+	FORCEINLINE void Reset() { Cells.Reset(); }
 };
