@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ArrowComponent.h"
+#include "ARPG_Map/Map/Types/MapTypes.h"
 #include "MapTileConnector.generated.h"
 
 class AMapTile;

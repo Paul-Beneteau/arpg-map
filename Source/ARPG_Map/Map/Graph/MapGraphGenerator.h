@@ -20,25 +20,25 @@ class ARPG_MAP_API UMapGraphGenerator : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	// Must be called before generating graphs
+	void Initialize(int32 InRows, int32 InColumns, const TObjectPtr<UDataTable>& InLayoutConfigTable, int32 InMaxLayoutRetries);
+	
 	// Pick a random layout config from LayoutConfigTable, then build the main path his branches.
 	FMapGraph GenerateMapGraph();
 	
 protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Graph Generation")
 	int32 Rows { 0 };
-	UPROPERTY(EditDefaultsOnly, Category = "Graph Generation")
 	int32 Columns { 0 };
 
 	// Map graph generated
 	FMapGraph CachedMapGraph;
 	
 	// Configuration for layout generation (layout type, segment lengths, themes, etc.)
-	UPROPERTY(EditDefaultsOnly, Category = "Graph Generation")
+	UPROPERTY()
 	TObjectPtr<UDataTable> LayoutConfigTable;
 	
 	// maximum number of retries if the layout generation fails
-	UPROPERTY(EditDefaultsOnly, Category = "Graph Generation")
-	int32 MaxLayoutGenerationRetries { 5 };
+	int32 MaxLayoutGenerationRetries { 25 };
 
 	// Pick a random layout config from LayoutConfigTable
 	FMapLayoutConfig PickLayoutConfig();

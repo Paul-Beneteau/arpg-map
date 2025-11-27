@@ -3,8 +3,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Graph/MapGraph.h"
+#include "Graph/MapGeneratorConfig.h"
 #include "MapGenerator.generated.h"
 
+class UMapGeneratorConfig;
 class AMapTile;
 struct FMapTileSpawnData;
 class UMapTileSelector;
@@ -40,9 +42,12 @@ public:
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Map Generation")
+	TObjectPtr<UMapGeneratorConfig> GeneratorConfig;
+	
+	UPROPERTY()
 	TObjectPtr<UMapGraphGenerator> GraphGenerator;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Map Generation")
+	UPROPERTY()
 	TObjectPtr<UMapTileSelector> TileSelector;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Map Generation")
@@ -57,6 +62,8 @@ protected:
 	TSubclassOf<UUserWidget> LayoutWidgetClass;
 	UPROPERTY()
 	TObjectPtr<UUserWidget> LayoutWidget ;
+
+	virtual void BeginPlay() override;
 	
 	void MovePlayerToStart(const FMapGraph& Graph);
 };

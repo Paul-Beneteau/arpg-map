@@ -36,12 +36,14 @@ class ARPG_MAP_API UMapTileSelector : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	void Initialize(const TArray<UMapTileTemplate*>& InTileTemplates);
+	
 	// Selects a random valid tile for each used cell in the graph.
 	TArray<FMapTileSpawnData> SelectTiles(const FMapGraph& Graph);
 	
 protected:
 	// Tile templates available for selection.
-	UPROPERTY(EditDefaultsOnly, Category = "Tile Selection")
+	UPROPERTY()
 	TArray<UMapTileTemplate*> TileTemplates;
 
 	// Picks a tile template using weighted random selection from valid tile templates

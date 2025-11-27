@@ -6,9 +6,18 @@
 #include "ARPG_Map/Map/Layout/MapLayout.h"
 #include "ARPG_Map/Map/Tile/MapTileTemplate.h"
 
+void UMapGraphGenerator::Initialize(int32 InRows, int32 InColumns, const TObjectPtr<UDataTable>& InLayoutConfigTable, int32 InMaxLayoutRetries)
+{
+	Rows = InRows;
+	Columns = InColumns;
+	LayoutConfigTable = InLayoutConfigTable;
+	MaxLayoutGenerationRetries = InMaxLayoutRetries;
+}
+
 FMapGraph UMapGraphGenerator::GenerateMapGraph()
 {
 	CachedMapGraph = FMapGraph(Rows, Columns);
+	CachedMapGraph.Cells.Reserve(Rows * Columns);
 	
 	const FMapLayoutConfig LayoutConfig = PickLayoutConfig();
 	if (!LayoutConfig.IsValid())
@@ -108,15 +117,30 @@ void UMapGraphGenerator::AddBranchesToPath(const TArray<FMapSegment>& Path, cons
 namespace 
 {
 	bool IsCellStraightPath(const FMapGraphCell& Cell)
-	{	
+	{
+		TArray<FMapConnector> PathConnectors;
+		for (FMapConnector Connector : Cell.Connectors)
+		{
+			if (Connector.Type == EMapConnectorType::Path)
+				PathConnectors.Add(Connector);
+		}
+		
 		// If the current cell has exactly 2 opposite path connectors.
-		if (Cell.Connectors.Num() == 2			
-			&& Cell.Connectors[0].Type == EMapConnectorType::Path
-			&& Cell.Connectors[1].Type == EMapConnectorType::Path
-			&& Cell.Connectors[0].Direction == MapUtils::Opposite(Cell.Connectors[1].Direction) == false)
+		if (PathConnectors.Num() == 2 && PathConnectors[0].Direction == MapUtils::Opposite(PathConnectors[1].Direction))
 			return true;
 	
 		return false;
+	}
+
+	FMapConnector GetOppositeConnector(const FMapGraphCell& Cell, const EMapDirection& ConnectorDirection)
+	{		
+		for (FMapConnector Connector : Cell.Connectors)
+		{
+			if (Connector.Direction == MapUtils::Opposite(ConnectorDirection))
+				return Connector;	
+		}
+
+		return FMapConnector();
 	}
 }
 
@@ -133,7 +157,7 @@ void UMapGraphGenerator::AddBranchesForConfig(const TArray<FMapSegment>& Path, c
 			// Check if the branch should be generated. Steps between last branch must be above step interval config, cell must be a straight path
 			// (This could be removed, it's a style preference) and the random spawn probability is picked.
 			if (StepsSinceLastBranch < BranchConfig.DistanceBetweenBranches				
-				|| IsCellStraightPath(CachedMapGraph.At(CurrentMainPathCoord))
+				|| !IsCellStraightPath(CachedMapGraph.At(CurrentMainPathCoord))
 				|| FMath::FRand() > BranchConfig.SpawnProbability)
 				continue;
 			
@@ -143,7 +167,13 @@ void UMapGraphGenerator::AddBranchesForConfig(const TArray<FMapSegment>& Path, c
 			Constraints.Start = CurrentMainPathCoord.Stepped(Constraints.StartDirection, 1);
 			Constraints.Bounds = FMapGraphCoord(Rows - 1, Columns - 1);
 			Constraints.IsCellUsed = [this](const FMapGraphCoord& Coord) { return CachedMapGraph.At(Coord).IsUsed(); };
-				
+
+			// Don't generate branches if opposite connector has a different type of the branch to have a better uniformity (e.g. Avoid crossroad with
+			// river at the right and rocks wall at the left)
+			FMapConnector OppositeConnector = GetOppositeConnector(CachedMapGraph.At(CurrentMainPathCoord), Constraints.StartDirection);			
+			if (OppositeConnector.IsValid() && OppositeConnector.Type != BranchConfig.PathConfig.ConnectorsConfig.Type)
+				continue;
+			
 			TArray<FMapSegment> Branch = GenerateAndPlacePath(BranchConfig.PathConfig, Constraints);			
 			if (!Branch.IsEmpty())
 				StepsSinceLastBranch = 0;	

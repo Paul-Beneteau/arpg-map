@@ -87,7 +87,7 @@ struct FMapConnector
 		, Theme(InTheme)
 	{}
 
-	FORCEINLINE bool IsValid() const { return Direction != EMapDirection::None && Type != EMapConnectorType::None && !Theme.IsNone(); }
+	FORCEINLINE bool IsValid() const { return Direction != EMapDirection::None && Type != EMapConnectorType::None; }
 
 	bool operator==(const FMapConnector& Other) const { return Direction == Other.Direction && Type == Other.Type && Theme == Other.Theme; }
 };

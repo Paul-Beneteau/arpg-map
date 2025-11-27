@@ -4,6 +4,11 @@
 #include "ARPG_Map/Map/MapGraphUtils.h"
 #include "ARPG_Map/Map/Graph/MapGraph.h"
 
+void UMapTileSelector::Initialize(const TArray<UMapTileTemplate*>& InTileTemplates)
+{
+	TileTemplates = InTileTemplates;
+}
+
 TArray<FMapTileSpawnData> UMapTileSelector::SelectTiles(const FMapGraph& Graph)
 {
 	TArray<FMapTileSpawnData> TileSpawnData;

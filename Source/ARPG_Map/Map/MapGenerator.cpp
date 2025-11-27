@@ -8,7 +8,7 @@
 AMapGenerator::AMapGenerator()
 {
 	GraphGenerator = CreateDefaultSubobject<UMapGraphGenerator>("GraphGenerator");
-	TileSelector = CreateDefaultSubobject<UMapTileSelector>("TileSelector");
+	TileSelector = CreateDefaultSubobject<UMapTileSelector>("TileSelector");			
 }
 
 // Generates a graph, select tiles for each graph cells and spawn them.
@@ -65,7 +65,7 @@ namespace
 		for (FMapConnector Connector: MapGraph.At(CellCoord).Connectors)
 		{
 			if (Connector.Type == EMapConnectorType::Path)
-				return FColor(140, 100, 60);				
+				return FColor::Blue;				
 		}
 
 		// The cell is part of a branch, show a dark brown color
@@ -155,6 +155,22 @@ void AMapGenerator::HideLayoutInfo()
 	{
 		LayoutWidget->RemoveFromParent();
 		LayoutWidget = nullptr;
+	}
+}
+
+void AMapGenerator::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (GeneratorConfig)
+	{
+		GraphGenerator->Initialize(
+			GeneratorConfig->Rows,
+			GeneratorConfig->Columns,
+			GeneratorConfig->LayoutConfigTable,
+			GeneratorConfig->MaxLayoutGenerationRetries);
+		
+		TileSelector->Initialize(GeneratorConfig->TileTemplates);
 	}
 }
 
