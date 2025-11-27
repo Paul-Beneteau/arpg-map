@@ -1,7 +1,10 @@
 #include "MapGraphGenerator.h"
 
+#include "IContentBrowserSingleton.h"
+#include "IPropertyTable.h"
 #include "MapGraph.h"
 #include "ARPG_Map/Map/Layout/MapLayout.h"
+#include "ARPG_Map/Map/Tile/MapTileTemplate.h"
 
 FMapGraph UMapGraphGenerator::GenerateMapGraph()
 {
@@ -23,6 +26,9 @@ FMapGraph UMapGraphGenerator::GenerateMapGraph()
 	
 	AddBranchesToPath(MainPath, LayoutConfig.BranchConfigs);
 
+	if (LayoutConfig.FillTheme.IsSet())
+		FillEmptyCells(LayoutConfig);		
+		
 	return CachedMapGraph;
 }
 
@@ -54,8 +60,9 @@ TArray<FMapSegment> UMapGraphGenerator::CreateMainPath(const FMapPathConfig& Pat
 	FMapPathConstraints Constraints;
 	Constraints.Start = GenerateMainPathStart();
 	Constraints.StartDirection = MapUtils::GetInwardDirection(Constraints.Start, Rows, Columns);
-	Constraints.Bounds = FMapGraphCoord(Rows, Columns);
-    
+	Constraints.Bounds = FMapGraphCoord(Rows - 1, Columns - 1);
+	Constraints.IsCellUsed = [this](const FMapGraphCoord& Coord) { return CachedMapGraph.At(Coord).IsUsed(); };
+	
 	TArray<FMapSegment> MainPath = GenerateAndPlacePath(PathConfig, Constraints);
 
 	if (!MainPath.IsEmpty())
@@ -92,24 +99,73 @@ FMapGraphCoord UMapGraphGenerator::GenerateMainPathStart() const
 	}
 }
 
-void UMapGraphGenerator::AddBranchesToPath(const TArray<FMapSegment>& MainPath, const TArray<FMapBranchConfig>& BranchConfigs)
+void UMapGraphGenerator::AddBranchesToPath(const TArray<FMapSegment>& Path, const TArray<FMapBranchConfig>& BranchConfigs)
 {
 	for (const FMapBranchConfig& BranchConfig : BranchConfigs)
-		AddBranchesForConfig(MainPath, BranchConfig);
+		AddBranchesForConfig(Path, BranchConfig);
 }
 
-void UMapGraphGenerator::AddBranchesForConfig(const TArray<FMapSegment>& MainPath, const FMapBranchConfig& BranchConfig)
+namespace 
 {
-	for (const FMapSegment& Segment : MainPath)
-	{
-		for (int32 Index = 0; Index < Segment.Length; Index += BranchConfig.StepInterval)
+	bool IsCellStraightPath(const FMapGraphCell& Cell)
+	{	
+		// If the current cell has exactly 2 opposite path connectors.
+		if (Cell.Connectors.Num() == 2			
+			&& Cell.Connectors[0].Type == EMapConnectorType::Path
+			&& Cell.Connectors[1].Type == EMapConnectorType::Path
+			&& Cell.Connectors[0].Direction == MapUtils::Opposite(Cell.Connectors[1].Direction) == false)
+			return true;
+	
+		return false;
+	}
+}
+
+void UMapGraphGenerator::AddBranchesForConfig(const TArray<FMapSegment>& Path, const FMapBranchConfig& BranchConfig)
+{
+	int32 StepsSinceLastBranch = 0;
+	
+	for (const FMapSegment& Segment : Path)
+	{		
+		for (int32 Index =  0; Index < Segment.Length; ++Index, ++StepsSinceLastBranch)
 		{
+			FMapGraphCoord CurrentMainPathCoord = Segment.GetCoordAt(Index);
+
+			// Check if the branch should be generated. Steps between last branch must be above step interval config, cell must be a straight path
+			// (This could be removed, it's a style preference) and the random spawn probability is picked.
+			if (StepsSinceLastBranch < BranchConfig.DistanceBetweenBranches				
+				|| IsCellStraightPath(CachedMapGraph.At(CurrentMainPathCoord))
+				|| FMath::FRand() > BranchConfig.SpawnProbability)
+				continue;
+			
 			FMapPathConstraints Constraints;
-			Constraints.StartDirection = MapUtils::RotateClockwise(Segment.Direction, BranchConfig.RotationFromMainPath);
-			Constraints.Start = Segment.GetCoordAt(Index).Stepped(Constraints.StartDirection, 1);
-			Constraints.Bounds = FMapGraphCoord(Rows, Columns);
-    
-			TArray<FMapSegment> Branch = GenerateAndPlacePath(BranchConfig.PathConfig, Constraints);
+			EMapRotation BranchRotation = MapUtils::GetRotation(BranchConfig.RotationFromMainPath);
+			Constraints.StartDirection = MapUtils::RotateClockwise(Segment.Direction, BranchRotation);
+			Constraints.Start = CurrentMainPathCoord.Stepped(Constraints.StartDirection, 1);
+			Constraints.Bounds = FMapGraphCoord(Rows - 1, Columns - 1);
+			Constraints.IsCellUsed = [this](const FMapGraphCoord& Coord) { return CachedMapGraph.At(Coord).IsUsed(); };
+				
+			TArray<FMapSegment> Branch = GenerateAndPlacePath(BranchConfig.PathConfig, Constraints);			
+			if (!Branch.IsEmpty())
+				StepsSinceLastBranch = 0;	
+		}
+	}
+}
+
+void UMapGraphGenerator::FillEmptyCells(const FMapLayoutConfig& LayoutConfig)
+{
+	for (int32 Row = 0; Row < Rows; Row++)
+	{
+		for (int32 Column = 0; Column < Columns; Column++)
+		{
+			FMapGraphCoord CurrentCoord = FMapGraphCoord(Row, Column);
+			
+			if (CachedMapGraph.At(CurrentCoord).IsUsed())
+				continue;
+				
+			FMapGraphCell Cell;
+			Cell.Theme = LayoutConfig.FillTheme.Get(NAME_None);
+
+			CachedMapGraph.At(CurrentCoord) = Cell;			
 		}
 	}
 }
@@ -121,43 +177,40 @@ TArray<FMapSegment> UMapGraphGenerator::GenerateAndPlacePath(const FMapPathConfi
 		TArray<FMapSegment> Path = FMapPathGenerator::GeneratePath(PathConfig, PathConstraints);
 		if (!Path.IsEmpty())
 		{
-			PlacePath(Path);
+			PlacePath(Path, PathConfig.ConnectorsConfig);
 			return Path;
 		}
-		
-		UE_LOG(LogTemp, Warning, TEXT("AMapGraphGenerator: Path generation failed (attempt %d/%d)"), RetryCount + 1, MaxLayoutGenerationRetries);
-		if (RetryCount == MaxLayoutGenerationRetries - 1)
-			UE_LOG(LogTemp, Error, TEXT("AMapGraphGenerator: Failed to generate path after %d attempts"), RetryCount + 1);
-	}
+	}	
 	
 	return TArray<FMapSegment>();
 }
 
-void UMapGraphGenerator::PlacePath(const TArray<FMapSegment>& Path)
+void UMapGraphGenerator::PlacePath(const TArray<FMapSegment>& Path, const FMapConnectorsConfig& ConnectorsConfig)
 {
 	for (const FMapSegment& Segment : Path)
-		PlaceSegment(Segment);
+		PlaceSegment(Segment, ConnectorsConfig);
 }
 
-void UMapGraphGenerator::PlaceSegment(const FMapSegment& Segment)
+void UMapGraphGenerator::PlaceSegment(const FMapSegment& Segment, const FMapConnectorsConfig& ConnectorsConfig)
 {
 	for (int32 Index = 0; Index < Segment.Length; Index++)
 	{
 		const FMapGraphCoord CurrentCoord = Segment.GetCoordAt(Index);
 		
-		// Cell should be inside the graph and not already used
+		// Cell should be inside the graph and not already used. This case should never happen because FMapPathGenerator generates only valid path
 		if (!MapUtils::IsInsideBounds(Rows, Columns, CurrentCoord) || CachedMapGraph.At(CurrentCoord).IsUsed())
-			return;		
+		{
+			UE_LOG(LogTemp, Error, TEXT("AMapGraphGenerator: Segment to place is invalid | Segment start: %d-%d"), Segment.Start.Row, Segment.Start.Column); 
+			return;
+		}
 
 		FMapGraphCell Cell;
-		Cell.Type = Segment.Type;
 		Cell.Theme = Segment.Theme,
-		Cell.FlowDirection = Segment.Direction;		
 		PlaceCell(CurrentCoord, Cell);
 
 		const FMapGraphCoord PreviousCoord = CurrentCoord.Stepped(Segment.Direction, -1);		
 		if (MapUtils::IsInsideBounds(Rows, Columns, PreviousCoord))
-			ConnectCells(CurrentCoord, PreviousCoord);
+			ConnectCells(CurrentCoord, PreviousCoord, ConnectorsConfig);
 	}
 }
 
@@ -166,11 +219,20 @@ void UMapGraphGenerator::PlaceCell(const FMapGraphCoord Coord, const FMapGraphCe
 	CachedMapGraph.At(Coord) = Cell;
 }
 
-void UMapGraphGenerator::ConnectCells(const FMapGraphCoord FirstCell, const FMapGraphCoord SecondCell)
+void UMapGraphGenerator::ConnectCells(const FMapGraphCoord FirstCellCoord, const FMapGraphCoord SecondCellCoord,  const FMapConnectorsConfig& ConnectorsConfig)
 {
-	if (!MapUtils::IsInsideBounds(Rows, Columns, FirstCell) || !MapUtils::IsInsideBounds(Rows, Columns, SecondCell))
+	if (!MapUtils::IsInsideBounds(Rows, Columns, FirstCellCoord) || !MapUtils::IsInsideBounds(Rows, Columns, SecondCellCoord))
 		return;
-	
-	CachedMapGraph.At(FirstCell).Connectors.Add(MapUtils::GetDirectionToward(FirstCell, SecondCell));
-	CachedMapGraph.At(SecondCell).Connectors.Add(MapUtils::GetDirectionToward(SecondCell, FirstCell));
+
+	FMapConnector FirstCellConnector;
+	FirstCellConnector.Direction = MapUtils::GetDirectionToward(FirstCellCoord, SecondCellCoord);
+	FirstCellConnector.Type = ConnectorsConfig.Type;
+	FirstCellConnector.Theme = ConnectorsConfig.Theme;	
+	CachedMapGraph.At(FirstCellCoord).Connectors.Add(FirstCellConnector);
+
+	FMapConnector SecondCellConnector;
+	SecondCellConnector.Direction = MapUtils::GetDirectionToward(SecondCellCoord, FirstCellCoord);
+	SecondCellConnector.Type = ConnectorsConfig.Type;
+	SecondCellConnector.Theme = ConnectorsConfig.Theme;	
+	CachedMapGraph.At(SecondCellCoord).Connectors.Add(SecondCellConnector);
 }

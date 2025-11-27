@@ -25,15 +25,7 @@ enum class EMapRotation : uint8
 	Degree270
 };
 
-// Role of the tile (Corridor, river, wall, etc.)
-UENUM(BlueprintType)
-enum class EMapTileType : uint8
-{
-	None,
-	Corridor,
-	River
-};
-
+// Graph 2d coordinates
 USTRUCT(BlueprintType)
 struct FMapGraphCoord
 {
@@ -57,4 +49,45 @@ struct FMapGraphCoord
 
 	// Sentinel value representing an invalid/uninitialized coordinate
 	static const FMapGraphCoord None;
+};
+
+// Role of the tile (Corridor, river, wall, etc.)
+UENUM(BlueprintType)
+enum class EMapConnectorType : uint8
+{
+	None,
+	Path,
+	Wall,	
+	River,
+	Bridge,
+};
+
+// Connector linking a cell to an adjacent cell.
+USTRUCT(BlueprintType)
+struct FMapConnector
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EMapDirection Direction = EMapDirection::None;
+    
+	// Type of the connection (Path, Wall, River, etc.)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EMapConnectorType Type = EMapConnectorType::None;
+    
+	// Visual theme (Grass, Rocks, Trees, etc.)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName Theme = NAME_None;
+
+	FMapConnector() = default;
+    
+	FMapConnector(EMapDirection InDirection, EMapConnectorType InType, FName InTheme)
+		: Direction(InDirection)
+		, Type(InType)
+		, Theme(InTheme)
+	{}
+
+	FORCEINLINE bool IsValid() const { return Direction != EMapDirection::None && Type != EMapConnectorType::None && !Theme.IsNone(); }
+
+	bool operator==(const FMapConnector& Other) const { return Direction == Other.Direction && Type == Other.Type && Theme == Other.Theme; }
 };

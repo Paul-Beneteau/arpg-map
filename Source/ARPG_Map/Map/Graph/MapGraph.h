@@ -7,27 +7,19 @@
 struct FMapGraphCoord;
 enum class EMapDirection : uint8;
 
-// Cell of the map graph. It has a Type (What the cell represent, corridor, etc), a theme (visual style) and connectors to links adjacent cells
+// Cell of the map graph. It has a TileType (What the cell represent, corridor, etc.), a theme (visual style) and connectors to links adjacent cells
 USTRUCT(BlueprintType)
 struct FMapGraphCell
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapTileType Type = EMapTileType::None;
 	
-	// Visual theme
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName Theme = "None";
-
-	// TODO: make it an array if a cell is a crossroad. Direction of the path the cell is in. For example, if it is part of river, it has the direction
-	// of the river
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapDirection FlowDirection = EMapDirection::None;
+	// Visual theme (grass, water, etc.)
+	UPROPERTY(BlueprintReadWrite)
+	FName Theme = NAME_None;
 	
-	// Links with adjacent cells
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<EMapDirection> Connectors;
+	// Links with adjacent cells (path, river, wall connectors)
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FMapConnector> Connectors;
 	
 	bool IsUsed() const { return !Theme.IsNone(); };
 };

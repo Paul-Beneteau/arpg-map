@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ARPG_Map/Map/MapGraphUtils.h"
 #include "Components/ArrowComponent.h"
 #include "MapTileConnector.generated.h"
 
@@ -15,5 +14,5 @@ class ARPG_MAP_API UMapTileConnector : public UArrowComponent
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapDirection Direction = EMapDirection::None;
+	FMapConnector Connector;
 };

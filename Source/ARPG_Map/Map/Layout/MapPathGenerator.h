@@ -27,9 +27,8 @@ protected:
 	TArray<FMapSegment> GenerateSquarePath();
 
 	
-	// Generate a segment with one of the direction of PossibleDirections. The segment starting coordinate are the
-	// anchor coordinates stepped by the AnchorOffset in the segment direction. If the Length parameter is not
-	// specified, a random length is chosen.
+	// Generate a segment with one of the direction of PossibleDirections. The segment starting coordinate are the anchor coordinates stepped by the
+	// AnchorOffset in the segment direction. If the Length parameter is not specified, a random length is chosen.
 	FMapSegment GenerateSegmentFromDirections(
 		const FMapGraphCoord Anchor,
 		const TArray<EMapDirection>& PossibleDirections,

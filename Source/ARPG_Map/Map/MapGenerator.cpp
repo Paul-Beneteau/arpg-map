@@ -11,6 +11,7 @@ AMapGenerator::AMapGenerator()
 	TileSelector = CreateDefaultSubobject<UMapTileSelector>("TileSelector");
 }
 
+// Generates a graph, select tiles for each graph cells and spawn them.
 void AMapGenerator::GenerateMap()
 {
 	ClearMap();
@@ -27,10 +28,7 @@ void AMapGenerator::GenerateMap()
 			TileSpawnData.Rotation);
 
 		if (!Tile)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to spawn Tile at: %f|%f"), TileSpawnData.GetWorldLocation(TileSize).X, TileSpawnData.GetWorldLocation(TileSize).Y);
 			continue;
-		}
 
 		SpawnedTiles.Add(Tile);
 	}
@@ -63,7 +61,18 @@ namespace
 		if (CellCoord == MapGraph.MainPathEnd)
 			return FColor::Red;
 
-		return FColor::Blue;
+		// The cell is part of a path, show a brown color
+		for (FMapConnector Connector: MapGraph.At(CellCoord).Connectors)
+		{
+			if (Connector.Type == EMapConnectorType::Path)
+				return FColor(140, 100, 60);				
+		}
+
+		// The cell is part of a branch, show a dark brown color
+		if (MapGraph.At(CellCoord).Connectors.Num() > 0)
+			return FColor(200, 180, 100);
+			
+		return FColor::White;
 	}
 
 	FVector GetConnectorOffset(EMapDirection Direction, float CellSize)
@@ -90,18 +99,23 @@ namespace
 		const FColor Color = GetCellColor(Cell, MapGraph, CellCoord);
 		const FVector HalfSize(Size * 0.99f / 2.0f, Size * 0.99f / 2.0f, 1.0f);
 		DrawDebugBox(World, Location, HalfSize, Color, true, 0.f, 0, 10.f);
+
+		FString DebugString = FString::Printf(TEXT("%d-%d"), CellCoord.Row, CellCoord.Column);
+		const FVector DebugStringOffset = FVector(0, -50, 0);
+		DrawDebugString(World, Location + DebugStringOffset , DebugString, nullptr, Color, -1.f, false, 2);
 	}
 	    
 	void DrawConnectors(const UWorld* World, const FVector& Location, const FMapGraphCell& Cell, float Size)
 	{
-		for (EMapDirection Direction : Cell.Connectors)
+		for (FMapConnector Connector : Cell.Connectors)
 		{
-			const FVector Offset = GetConnectorOffset(Direction, Size);
+			const FVector Offset = GetConnectorOffset(Connector.Direction, Size);
 			DrawDebugLine(World, Location + Offset, Location + (Offset * 1.2f), FColor::Purple, true, 0.f,
 				0, 10.f);
 		}
 	}
 }
+
 void AMapGenerator::ShowGraph() const
 {
 	for (int32 Row = 0; Row < CachedMapGraph.Rows; ++Row)
@@ -122,6 +136,7 @@ void AMapGenerator::ShowGraph() const
 void AMapGenerator::HideGraph() const
 {
 	FlushPersistentDebugLines(GetWorld());
+	FlushDebugStrings(GetWorld());
 }
 
 void AMapGenerator::ShowLayoutInfo()

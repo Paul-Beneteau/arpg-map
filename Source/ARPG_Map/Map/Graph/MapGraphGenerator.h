@@ -48,18 +48,22 @@ protected:
 	// Generate the start of the main path on the graph edges
 	FMapGraphCoord GenerateMainPathStart() const;
 
-	void AddBranchesToPath(const TArray<FMapSegment>& MainPath, const TArray<FMapBranchConfig>& BranchConfigs);
-	void AddBranchesForConfig(const TArray<FMapSegment>& MainPath, const FMapBranchConfig& BranchConfig);
+	// Generate and place branches using BranchConfigs to the path
+	void AddBranchesToPath(const TArray<FMapSegment>& Path, const TArray<FMapBranchConfig>& BranchConfigs);
+	void AddBranchesForConfig(const TArray<FMapSegment>& Path, const FMapBranchConfig& BranchConfig);
 
+	// Fill empty cells in the graph with a FMapTileConfig EmptyCellFillConfig from the LayoutConfig.
+	void FillEmptyCells(const FMapLayoutConfig& LayoutConfig);
+	
 	// Use FMapPathGenerator to generate a path and then place it in the graph
 	TArray<FMapSegment> GenerateAndPlacePath(const FMapPathConfig& PathConfig, const FMapPathConstraints& PathConstraints);
 
-	void PlacePath(const TArray<FMapSegment>& Path);
+	void PlacePath(const TArray<FMapSegment>& Path, const FMapConnectorsConfig& ConnectorsConfig);
 	// Place a segment in CachedMapGraph
-	void PlaceSegment(const FMapSegment& Segment);
+	void PlaceSegment(const FMapSegment& Segment, const FMapConnectorsConfig& ConnectorsConfig);
 	// Place a cell in CachedMapGraph
 	void PlaceCell(const FMapGraphCoord Coord, const FMapGraphCell& Cell);
 
-	// Adds connectors between the two cells
-	void ConnectCells(const FMapGraphCoord FirstCell, const FMapGraphCoord SecondCell);
+	// Add connectors between the two cells using ConnectorsConfig
+	void ConnectCells(const FMapGraphCoord FirstCellCoord, const FMapGraphCoord SecondCellCoord, const FMapConnectorsConfig& ConnectorsConfig);
 };

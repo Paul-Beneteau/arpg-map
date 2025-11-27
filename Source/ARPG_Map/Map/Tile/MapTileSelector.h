@@ -54,9 +54,7 @@ protected:
 
 	// Check if a template can be selected for the cell. Check if the template matches for all possible rotation of the tile.
 	bool DoesTemplateMatchCell(const UMapTileTemplate* Template, const FMapGraphCell& Cell) const;
-	// Check if a template can be selected for the cell with a specific rotation of the template
-	bool DoesTemplateMatchWithRotation(const UMapTileTemplate* Template, const FMapGraphCell& Cell, EMapRotation Rotation) const;
-
+	
 	// Get template matching rotations with the cell
 	TArray<FRotator> GetMatchingRotations(const UMapTileTemplate* Template, const FMapGraphCell& Cell) const;
 

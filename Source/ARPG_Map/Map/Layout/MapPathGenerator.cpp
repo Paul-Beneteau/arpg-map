@@ -1,5 +1,7 @@
 ﻿#include "MapPathGenerator.h"
 
+#include "VectorUtil.h"
+
 FMapPathGenerator::FMapPathGenerator(const FMapPathConfig& InPathConfig, const FMapPathConstraints& InPathConstraints)
 	: PathConfig(InPathConfig),
 	PathConstraints(InPathConstraints)
@@ -9,9 +11,16 @@ FMapPathGenerator::FMapPathGenerator(const FMapPathConfig& InPathConfig, const F
 TArray<FMapSegment> FMapPathGenerator::GeneratePath(const FMapPathConfig& InPathConfig, const FMapPathConstraints& InPathConstraints)
 {	
 	FMapPathGenerator PathGenerator(InPathConfig, InPathConstraints);
-	
-	switch (InPathConfig.Layout)
+
+	// Pick a random layout
+	if (InPathConfig.Layout == EMapPathLayout::Random)
 	{
+		TArray<EMapPathLayout> PossibleLayouts { EMapPathLayout::Straight, EMapPathLayout::L, EMapPathLayout::Stairs, EMapPathLayout::U };
+		PathGenerator.PathConfig.Layout = PossibleLayouts[FMath::RandRange(0, PossibleLayouts.Num() - 1)];
+	}
+		
+	switch (PathGenerator.PathConfig.Layout)
+	{		
 	case EMapPathLayout::Straight:
 		return PathGenerator.GenerateStraightPath();
 		
@@ -103,7 +112,7 @@ TArray<FMapSegment> FMapPathGenerator::GenerateStairsPath()
 	const FMapSegment& FirstSegment = Path[0];
 	const FMapSegment& SecondSegment = Path[1];
 	
-	FMapSegment ThirdSegment = GenerateSegment(SecondSegment.End(), FirstSegment.Direction,1,FirstSegment.Length - 1);	
+	FMapSegment ThirdSegment = GenerateSegment(SecondSegment.End(), FirstSegment.Direction,1);	
 	if (!ThirdSegment.IsValid())
 		return TArray<FMapSegment>();
 
@@ -113,30 +122,49 @@ TArray<FMapSegment> FMapPathGenerator::GenerateStairsPath()
 
 TArray<FMapSegment> FMapPathGenerator::GenerateSquarePath()
 {
-	// Square Shape is a U Shape with a last segment closing the U.
-	TArray<FMapSegment> Path = GenerateUPath();
-	if (Path.IsEmpty())
+	// L Shape is composed of 2 segments
+	TArray<FMapSegment> Path;
+	
+	FMapSegment FirstSegment = GenerateSegment(PathConstraints.Start, PathConstraints.StartDirection);	
+	if (!FirstSegment.IsValid())
 		return TArray<FMapSegment>();
 
-	const FMapSegment& FirstSegment = Path[0];
-	const FMapSegment& SecondSegment = Path[1];
-	const FMapSegment& ThirdSegment = Path[2];
-	
-	// Fourth segment has opposite direction of the second segment, with the first segment length - 2
-	FMapSegment FourthSegment = GenerateSegment(
-		ThirdSegment.End(),
-		MapUtils::Opposite(SecondSegment.Direction),
+	// Second segment turns perpendicular from the first segment's end. AnchorOffset = 1 steps one cell in the new direction from the anchor
+	// (the corner cell) 
+	FMapSegment SecondSegment =	GenerateSegmentFromDirections(
+		FirstSegment.End(),
+		MapUtils::Perpendicular(FirstSegment.Direction),
 		1,
-		FirstSegment.Length - 2);
+		FirstSegment.Length - 1);
+	
+	if (!SecondSegment.IsValid())
+		return TArray<FMapSegment>();
+
+	FMapSegment ThirdSegment =	GenerateSegmentFromDirections(
+	SecondSegment.End(),
+	{ MapUtils::Opposite(FirstSegment.Direction) },
+	1,
+	FirstSegment.Length - 1);
+	
+	if (!ThirdSegment.IsValid())
+		return TArray<FMapSegment>();
+
+	FMapSegment FourthSegment =	GenerateSegmentFromDirections(
+	ThirdSegment.End(),
+	{ MapUtils::Opposite(SecondSegment.Direction) },
+	1,
+	FirstSegment.Length - 2);
 	
 	if (!FourthSegment.IsValid())
 		return TArray<FMapSegment>();
 	
+	Path.Add(FirstSegment);
+	Path.Add(SecondSegment);
+	Path.Add(ThirdSegment);
 	Path.Add(FourthSegment);
 	
 	return Path;
 }
-
 FMapSegment FMapPathGenerator::GenerateSegmentFromDirections(
 	const FMapGraphCoord Anchor,
 	const TArray<EMapDirection>& PossibleDirections,
@@ -145,22 +173,35 @@ FMapSegment FMapPathGenerator::GenerateSegmentFromDirections(
 {
 	FMapSegment Segment;
 	Segment.Length = Length > 0 ? Length : FMath::RandRange(PathConfig.SegmentMinLength, PathConfig.SegmentMaxLength);
-	Segment.Type = PathConfig.Type;
 	Segment.Theme = PathConfig.Theme;
-	
+    
 	TArray<EMapDirection> ValidDirections;
+
+	// Fill ValidDirections
 	for (EMapDirection Direction : PossibleDirections)
 	{
-		if (PathConstraints.IsInBounds( Anchor.Stepped(Direction, Segment.Length - 1 + AnchorOffset)))
-			ValidDirections.Add(Direction);			
+		FMapGraphCoord PossibleStart = Anchor.Stepped(Direction, AnchorOffset);
+		int32 MaxSegmentLength = PathConstraints.GetMaxSegmentLength(PossibleStart, Direction);
+
+		// If maximum segment length is superior to the segment length or if the segment can be truncated
+		if (MaxSegmentLength >= Segment.Length || (PathConfig.bCanBeTruncated && MaxSegmentLength > 0))
+			ValidDirections.Add(Direction);		
 	}
-	
+    
 	if (ValidDirections.IsEmpty())
 		return FMapSegment();
 
 	Segment.Direction = ValidDirections[FMath::RandRange(0, ValidDirections.Num() - 1)];
 	Segment.Start = Anchor.Stepped(Segment.Direction, AnchorOffset);
 
+	// Truncate segment if needed
+	int32 MaxSegmentLength = PathConstraints.GetMaxSegmentLength(Segment.Start, Segment.Direction);
+	if (MaxSegmentLength < Segment.Length)
+	{
+		check(PathConfig.bCanBeTruncated && MaxSegmentLength > 0);
+		Segment.Length = MaxSegmentLength;
+	}
+	
 	return Segment;
 }
 

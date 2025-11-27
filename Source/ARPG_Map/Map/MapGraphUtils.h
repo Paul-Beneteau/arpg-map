@@ -2,9 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "ARPG_Map/Map/Types/MapTypes.h"
+#include "Layout/MapLayout.h"
 
 struct FMapSegment;
 struct FMapGraph;
+enum class EMapBranchRotation : uint8;
 
 namespace MapUtils
 {
@@ -12,57 +14,28 @@ namespace MapUtils
 	
 	// Rotate a direction clockwise by the specified rotation. RotateClockwise(North, Degree90) -> East
 	EMapDirection RotateClockwise(EMapDirection Direction, EMapRotation Rotation);
-
 	// Get the rotation between two direction
 	EMapRotation GetRotationBetween(EMapDirection FromDirection, EMapDirection TowardDirection);
+	// Get rotation the EMapBranchRotation enum
+	EMapRotation GetRotation(EMapBranchRotation BranchRotation);
 	
 	// Get opposite direction
-	FORCEINLINE EMapDirection Opposite(EMapDirection Direction)
-	{
-		return RotateClockwise(Direction, EMapRotation::Degree180);
-	}
-	
+	EMapDirection Opposite(EMapDirection Direction);	
 	// Get both perpendicular direction
-	FORCEINLINE TArray<EMapDirection> Perpendicular(EMapDirection Direction)
-	{
-		return { RotateClockwise(Direction, EMapRotation::Degree270), RotateClockwise(Direction, EMapRotation::Degree90) };
-	}
+	TArray<EMapDirection> Perpendicular(EMapDirection Direction);
 	
 	// Get the direction of a cell toward another cell
 	EMapDirection GetDirectionToward(const FMapGraphCoord& FromCell, const FMapGraphCoord& TowardCell);
 	// Get the direction toward the center of the graph
-	EMapDirection GetInwardDirection(const FMapGraphCoord& Coord, const int32 Rows, const int32 Columns);
+	EMapDirection GetInwardDirection(const FMapGraphCoord& Coord, int32 Rows, int32 Columns);
 
-	FORCEINLINE FString GetDirectionText(EMapDirection Direction)
-	{
-		switch(Direction)
-		{
-		case EMapDirection::North:
-			return "North";
-		
-		case EMapDirection::West:
-			return "West";
-		
-		case EMapDirection::South:
-			return "South";
-
-		case EMapDirection::East:
-			return "East";
-		
-		default:
-			return "None";
-		}
-	}
-
-	FORCEINLINE bool IsInsideBounds(const int32 Rows, const int32 Columns, const FMapGraphCoord& Coord)
-	{
-		return Coord.Row >= 0 && Coord.Row < Rows	&& Coord.Column >= 0 && Coord.Column < Columns;
-	}
+	bool IsInsideBounds(int32 Rows, int32 Columns, const FMapGraphCoord& Coord);
 
 	int32 GetPathLength(const TArray<FMapSegment>& Path);
-	
+
 	void PrintGraph(FMapGraph& MapGraph, const UWorld* InWorld, const int32 CellSize);
 
+	// Pick a random element using their weight
 	template<typename T>
 	T* PickWeightedRandom(const TArray<T*>& Items, TFunction<float(const T*)> GetWeight)
 	{
@@ -116,6 +89,6 @@ namespace MapUtils
 		}
     
 		return T();
-	}
+	}	
 }
 

@@ -5,6 +5,8 @@
 #include "ARPG_Map/Map/Types/MapTypes.h"
 #include "MapLayout.generated.h"
 
+class UMapTileTemplate;
+
 // =============================================
 // Layout structs (Path is an array of segments)
 // =============================================
@@ -25,10 +27,6 @@ struct FMapSegment
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EMapDirection Direction = EMapDirection::None;
 	
-	// what it represents (Corridor, river, wall, etc.)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapTileType Type = EMapTileType::None;
-
 	// Define visuals
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName Theme = "None";
@@ -38,7 +36,12 @@ struct FMapSegment
 	
 	FORCEINLINE FMapGraphCoord End() const { return Start.Stepped(Direction, Length - 1); }
 	
-	FORCEINLINE bool IsValid() const { return Length > 0 && Direction != EMapDirection::None; };
+	FORCEINLINE bool IsValid() const
+	{
+		return Start != FMapGraphCoord::None
+		&& Length > 0
+		&& Direction != EMapDirection::None;
+	};
 };
 
 // =======================================
@@ -50,11 +53,28 @@ UENUM(BlueprintType)
 enum class EMapPathLayout : uint8
 {
 	None,
+	// Pick a random layout
+	Random,
 	Straight,
 	L,
 	U,	
 	Stairs,
 	Square
+};
+
+// Configuration to generate connectors
+USTRUCT(BlueprintType)
+struct FMapConnectorsConfig
+{
+	GENERATED_BODY()
+    
+	// Type of the connection (Path, Wall, River, etc.)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EMapConnectorType Type = EMapConnectorType::None;
+    
+	// Visual theme (Grass, Rocks, Trees, etc.)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName Theme = NAME_None;
 };
 
 // Configuration to generate a path
@@ -66,20 +86,39 @@ struct FMapPathConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EMapPathLayout Layout = EMapPathLayout::None;
 
+	// Length for each segments in the path is randomly picked between those values
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 SegmentMinLength = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 SegmentMaxLength = 0;
 
+	// Visual theme of tiles (Grass, water, etc.)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapTileType Type = EMapTileType::None;
+	FName Theme = NAME_None;
+
+	// Configuration to generate connectors between tiles (path, river, wall connectors)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName Theme;
+	FMapConnectorsConfig ConnectorsConfig;
+
+	// Can truncate segments if it doesn't fit
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bCanBeTruncated = false;
 
 	FORCEINLINE bool IsValid() const
 	{
 		return Layout != EMapPathLayout::None && SegmentMinLength > 0 && SegmentMaxLength >= SegmentMinLength;
 	}
+};
+
+// Possible branch rotation
+UENUM(BlueprintType)
+enum class EMapBranchRotation : uint8
+{
+	None,
+	// Pick randomly between Degree90 and Degree270
+	Random,
+	Degree90,
+	Degree270
 };
 
 // Configuration to generate a branch from a path
@@ -90,15 +129,15 @@ struct FMapBranchConfig
 
 	// RotationFromMainPath relative to the main path direction
 	UPROPERTY(EditAnywhere)
-	EMapRotation RotationFromMainPath = EMapRotation::None;
+	EMapBranchRotation RotationFromMainPath = EMapBranchRotation::None;
 
-	// Interval between two branches
+	// Minimum distance between two branches
 	UPROPERTY(EditAnywhere)
-	int32 StepInterval = 0;
+	int32 DistanceBetweenBranches = 1;
 
 	// Percent probability of spawn from 0 to 1
 	UPROPERTY(EditAnywhere)
-	float SpawnProbability = 0.f;
+	float SpawnProbability = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FMapPathConfig PathConfig;
@@ -116,13 +155,14 @@ struct FMapLayoutConfig : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FMapBranchConfig> BranchConfigs;
 
+	// Fill empty cell with tiles matching the theme and no connectors.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Weight = 0.f;
+	TOptional<FName> FillTheme;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Weight = 1.f;
 
-	FORCEINLINE bool IsValid() const
-	{
-		return MainPathConfig.IsValid();
-	}
+	FORCEINLINE bool IsValid() const { return MainPathConfig.IsValid();	}
 };
 
 // Constraint for generating the path.
@@ -137,11 +177,37 @@ struct FMapPathConstraints
 	// Direction of the first segment
 	EMapDirection StartDirection;
 
-	// Bounds of the path. Should be set with the rows and columns of the graph
+	// Bounds of the path. Should be set with the rows - 1 and columns - 1 of the graph. For a graph with 3 rows and 3 columns, bound will be (2, 2)
+	// because it goes from index 0 to index 2
 	FMapGraphCoord Bounds = FMapGraphCoord(0, 0);
 
+	// Lambda checking is the cell is used. Used in GetMaxSegmentLength()
+	TFunction<bool(const FMapGraphCoord&)> IsCellUsed;
+	
 	bool IsInBounds(const FMapGraphCoord& Coord) const
 	{
 		return Coord.Row >= 0 && Coord.Row <= Bounds.Row && Coord.Column >= 0 && Coord.Column <= Bounds.Column;
+	}
+	
+	bool IsCellValid(const FMapGraphCoord& Coord) const
+	{
+		if (!IsInBounds(Coord))
+			return false;
+        
+		if (IsCellUsed)
+			return !IsCellUsed(Coord);
+        
+		return true;
+	}
+
+	// Get the maximum valid segment length of the current cell in the direction given.
+	int32 GetMaxSegmentLength(const FMapGraphCoord& StartCoord, EMapDirection Direction)
+	{
+		int32 Length = 0;
+		
+		while (IsCellValid(StartCoord.Stepped(Direction, Length)))
+			Length++;
+
+		return Length;
 	}
 };

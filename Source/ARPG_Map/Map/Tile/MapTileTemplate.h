@@ -5,6 +5,7 @@
 #include "Engine/DataAsset.h"
 #include "MapTileTemplate.generated.h"
 
+class UMapTileConnector;
 enum class EMapCellType : uint8;
 enum class EMapDirection : uint8;
 class AMapTile;
@@ -18,20 +19,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<AMapTile> TileClass;
 
+	// Chance to be selected for the map generation
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Weight = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapTileType Type;
+	float Weight = 1.f;
 
 	// Visual theme
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName Theme;
-
-	// Does the tile has a forward direction it must keep (e.g., a river with north forward direction, if placed on an east segment, must be rotated
-	// by 90 degree clockwise). EMapDirection::None means the tile has no forward direction and can be rotated.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EMapDirection ForwardDirection = EMapDirection::None;
 	
 	bool HasConnectors(const TArray<EMapDirection>& Connectors) const;
+
+	TArray<FMapConnector> GetConnectors() const;
 }; 

@@ -59,10 +59,7 @@ TArray<UMapTileTemplate*> UMapTileSelector::GetMatchingTemplates(const FMapGraph
 	TArray<UMapTileTemplate*> Matches;
 
 	for (UMapTileTemplate* Template : TileTemplates)
-	{
-		if (!Template || Template->Type != Cell.Type || Template->Theme != Cell.Theme)
-			continue;
-		
+	{		
 		if (DoesTemplateMatchCell(Template, Cell))
 			Matches.Add(Template);
 	}
@@ -70,58 +67,71 @@ TArray<UMapTileTemplate*> UMapTileSelector::GetMatchingTemplates(const FMapGraph
 	return Matches;
 }
 
-bool UMapTileSelector::DoesTemplateMatchCell(const UMapTileTemplate* Template, const FMapGraphCell& Cell) const
+namespace 
 {
-	// If template has a forward direction, tile can only be rotated so that his forward direction matches the cell flow direction
-	if (Template->ForwardDirection != EMapDirection::None)
+	TArray<FMapConnector> RotateConnectors(TArray<FMapConnector> Connectors, EMapRotation Rotation)
 	{
-		EMapRotation RequiredRotation = MapUtils::GetRotationBetween(Template->ForwardDirection, Cell.FlowDirection);
-		return DoesTemplateMatchWithRotation(Template, Cell, RequiredRotation);
+		TArray<FMapConnector> RotatedConnectors;
+		
+		for (FMapConnector& Connector : Connectors)
+		{
+			Connector.Direction = MapUtils::RotateClockwise(Connector.Direction, Rotation);
+			RotatedConnectors.Add(Connector);
+		}
+
+		return RotatedConnectors;
 	}
+	
+	// Check if Connectors array has all RequiredConnectors.
+	bool HasAllConnectors(const TArray<FMapConnector>& Connectors, const TArray<FMapConnector>& RequiredConnectors)
+	{		
+		for (const FMapConnector& Connector : RequiredConnectors)
+		{			
+			if (!Connectors.Contains(Connector))
+				return false;
+		}
 
-	// Check is the template match cell for all possible rotations
-	for (EMapRotation Rotation : { EMapRotation::Degree0, EMapRotation::Degree90, EMapRotation::Degree180, EMapRotation::Degree270 })
-	{
-		if (DoesTemplateMatchWithRotation(Template, Cell, Rotation))
-			return true;
-	}	
-
-	return false;
+		return true;
+	}
 }
 
-bool UMapTileSelector::DoesTemplateMatchWithRotation(const UMapTileTemplate* Template, const FMapGraphCell& Cell, EMapRotation Rotation) const
+bool UMapTileSelector::DoesTemplateMatchCell(const UMapTileTemplate* Template, const FMapGraphCell& Cell) const
 {
-	TArray<EMapDirection> RotatedConnectors = Cell.Connectors;
+	// If template theme doesn't match cell theme or if they don't have the same number of connectors
+	if (!Template || Template->Theme != Cell.Theme || Cell.Connectors.Num() != Template->GetConnectors().Num())
+		return false;
 	
-	for (EMapDirection& Connector : RotatedConnectors)
-		Connector = MapUtils::RotateClockwise(Connector, Rotation);
+	// For each possible rotation of the template tile
+	for (EMapRotation Rotation : { EMapRotation::Degree0, EMapRotation::Degree90, EMapRotation::Degree180, EMapRotation::Degree270 })
+	{		
+		TArray<FMapConnector> RotatedTemplateConnectors = RotateConnectors(Template->GetConnectors(), Rotation);
 
-	return Template->HasConnectors(RotatedConnectors);
+		// check if the tile has cell connectors
+		if (HasAllConnectors(RotatedTemplateConnectors, Cell.Connectors))
+			return true;
+	}
+
+	return false;
 }
 
 TArray<FRotator> UMapTileSelector::GetMatchingRotations(const UMapTileTemplate* Template, const FMapGraphCell& Cell) const
 {
 	TArray<FRotator> MatchingRotations;
-	TArray<EMapRotation> PossibleRotations { EMapRotation::Degree0, EMapRotation::Degree90, EMapRotation::Degree180, EMapRotation::Degree270 };
 
-	// If template has a forward direction, tile can only be rotated so that his forward direction matches the cell flow direction
-	if (Template->ForwardDirection != EMapDirection::None)
-		PossibleRotations = { MapUtils::GetRotationBetween(Template->ForwardDirection, Cell.FlowDirection) };
+	// If template theme doesn't match cell theme or if they don't have the same number of connectors
+	if (!Template || Template->Theme != Cell.Theme || Cell.Connectors.Num() != Template->GetConnectors().Num())
+		return MatchingRotations;
 	
 	// Check if the candidate can fit with the 4 possible clockwise rotation (0°, 90°, 180°; 270°) of the tile.
-	for (const EMapRotation Rotation : PossibleRotations)
+	for (const EMapRotation Rotation : { EMapRotation::Degree0, EMapRotation::Degree90, EMapRotation::Degree180, EMapRotation::Degree270 })
 	{
-		TArray<EMapDirection> RotatedConnectors = Cell.Connectors;
-			
-		for (EMapDirection& Connector : RotatedConnectors)
-			Connector = MapUtils::RotateClockwise(Connector, Rotation);
+		TArray<FMapConnector> RotatedTemplateConnectors = RotateConnectors(Template->GetConnectors(), Rotation);
 
-		// If the template has connectors with the same direction as the ones from the cell
-		if (Template->HasConnectors(RotatedConnectors))
+		// If rotated template has all required cell connectors
+		if (HasAllConnectors(RotatedTemplateConnectors, Cell.Connectors))
 		{
-			// We checked by rotating the cell clockwise, so we have to rotate the template inverse clockwise to fit the cell, so we subtract
-			// the yaw to the rotation.
-			FRotator TileRotation(0.f, -MapUtils::RotationToYaw(Rotation), 0.f);
+			// We rotated the template clockwise, so apply that rotation to the tile
+			FRotator TileRotation(0.f, MapUtils::RotationToYaw(Rotation), 0.f);
 			MatchingRotations.Add(TileRotation);
 		}
 	}

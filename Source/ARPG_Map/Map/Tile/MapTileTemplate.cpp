@@ -20,9 +20,7 @@ bool UMapTileTemplate::HasConnectors(const TArray<EMapDirection>& Connectors) co
 			{
 				UMapTileConnector* Connector = Cast<UMapTileConnector>(Node->ComponentTemplate);
 				if (Connector)
-				{
-					TemplateConnectors.Add(Connector->Direction);
-				}
+					TemplateConnectors.Add(Connector->Connector.Direction);
 			}
 		}
 	}
@@ -34,4 +32,27 @@ bool UMapTileTemplate::HasConnectors(const TArray<EMapDirection>& Connectors) co
 	}
 	
 	return true;
+}
+
+TArray<FMapConnector> UMapTileTemplate::GetConnectors() const
+{
+	TArray<FMapConnector> Connectors;
+	
+	UBlueprintGeneratedClass* BlueprintTileClass = Cast<UBlueprintGeneratedClass>(TileClass);
+	if (BlueprintTileClass && BlueprintTileClass->SimpleConstructionScript)
+	{
+		// Get all nodes from the SCS
+		const TArray<USCS_Node*>& Nodes = BlueprintTileClass->SimpleConstructionScript->GetAllNodes();
+        
+		for (USCS_Node* Node : Nodes)
+		{
+			if (Node && Node->ComponentTemplate)
+			{
+				if (UMapTileConnector* TileConnector = Cast<UMapTileConnector>(Node->ComponentTemplate))
+					Connectors.Add(TileConnector->Connector);
+			}
+		}
+	}
+
+	return Connectors;
 }

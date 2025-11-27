@@ -110,7 +110,7 @@ namespace MapUtils
    		const int32 Yaw = DirectionToYaw(Direction) + RotationToYaw(Rotation);
 		return YawToDirection(Yaw);
 	}
-
+		
 	EMapRotation GetRotationBetween(EMapDirection FromDirection, EMapDirection TowardDirection)
 	{
 		if (FromDirection == EMapDirection::None || TowardDirection == EMapDirection::None)
@@ -118,6 +118,34 @@ namespace MapUtils
   
 		const int32 Yaw = DirectionToYaw(TowardDirection) - DirectionToYaw(FromDirection);    
 		return YawToRotation(Yaw);
+	}
+
+	EMapRotation GetRotation(EMapBranchRotation BranchRotation)
+	{
+		switch (BranchRotation)
+		{
+		case EMapBranchRotation::Random:
+			return FMath::RandBool() ? EMapRotation::Degree90 : EMapRotation::Degree270;
+			
+		case EMapBranchRotation::Degree90:
+			return EMapRotation::Degree90;
+			
+		case EMapBranchRotation::Degree270:
+			return EMapRotation::Degree270;
+			
+		default:
+			return EMapRotation::None;
+		}
+	}
+
+	EMapDirection Opposite(EMapDirection Direction)
+	{
+		return RotateClockwise(Direction, EMapRotation::Degree180);
+	}
+
+	TArray<EMapDirection> Perpendicular(EMapDirection Direction)
+	{
+		return { RotateClockwise(Direction, EMapRotation::Degree270), RotateClockwise(Direction, EMapRotation::Degree90) };
 	}
 	
 	EMapDirection GetDirectionToward(const FMapGraphCoord& FromCell, const FMapGraphCoord& TowardCell)
@@ -134,7 +162,7 @@ namespace MapUtils
 		return EMapDirection::None;
 	}
 
-	EMapDirection GetInwardDirection(const FMapGraphCoord& Coord, const int32 Rows, const int32 Columns)
+	EMapDirection GetInwardDirection(const FMapGraphCoord& Coord, int32 Rows, int32 Columns)
 	{
 		if (Coord.Row == 0)
 			return EMapDirection::South;
@@ -148,6 +176,11 @@ namespace MapUtils
 		return EMapDirection::None;
 	}
 
+	bool IsInsideBounds(int32 Rows, int32 Columns, const FMapGraphCoord& Coord)
+	{
+		return Coord.Row >= 0 && Coord.Row < Rows	&& Coord.Column >= 0 && Coord.Column < Columns;
+	}
+	
 	int32 GetPathLength(const TArray<FMapSegment>& Path)
 	{
 		int32 PathLength = 0;
