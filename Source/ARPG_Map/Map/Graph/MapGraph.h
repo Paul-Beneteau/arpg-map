@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ARPG_Map/Map/Layout/MapLayout.h"
 #include "ARPG_Map/Map/Types/MapTypes.h"
 #include "MapGraph.generated.h"
 
@@ -32,12 +33,23 @@ struct FMapGraph
 
 public:
 	TArray<FMapGraphCell> Cells;
-	
+
+	UPROPERTY(BlueprintReadOnly)
 	int32 Rows = 0;
+	UPROPERTY(BlueprintReadOnly)
 	int32 Columns = 0;
 
 	FMapGraphCoord MainPathStart = FMapGraphCoord(0, 0);
 	FMapGraphCoord MainPathEnd = FMapGraphCoord(0, 0);
+
+	// Metadata used to display information on the generated graph for widgets
+	UPROPERTY(BlueprintReadOnly)
+	EMapPathLayout MainPathLayout = EMapPathLayout::None;
+	UPROPERTY(BlueprintReadOnly)
+	int32 MainPathLength = 0;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 BranchesCount = 0;
 	
 	FMapGraph() = default;	
 	FMapGraph(const int32 InRows, const int32 InColumns) : Rows(InRows), Columns(InColumns) { Cells.SetNum(Rows * Columns); };

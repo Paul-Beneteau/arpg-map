@@ -29,7 +29,7 @@ FMapGraph UMapGraphGenerator::GenerateMapGraph()
 	TArray<FMapSegment> MainPath = CreateMainPath(LayoutConfig.MainPathConfig);
 	if (MainPath.IsEmpty())
 	{
-		UE_LOG(LogTemp, Error, TEXT("AMapGraphGenerator: Failed to generate map graph"));
+		UE_LOG(LogTemp, Error, TEXT("AMapGraphGenerator: Failed to generate main path"));
 		return FMapGraph();
 	}
 	
@@ -37,6 +37,11 @@ FMapGraph UMapGraphGenerator::GenerateMapGraph()
 
 	if (LayoutConfig.FillTheme.IsSet())
 		FillEmptyCells(LayoutConfig);		
+
+	// Graph metadata
+	CachedMapGraph.MainPathLayout = LayoutConfig.MainPathConfig.Layout;
+	for (FMapSegment Segment : MainPath)
+		CachedMapGraph.MainPathLength += Segment.Length;
 		
 	return CachedMapGraph;
 }
@@ -176,7 +181,11 @@ void UMapGraphGenerator::AddBranchesForConfig(const TArray<FMapSegment>& Path, c
 			
 			TArray<FMapSegment> Branch = GenerateAndPlacePath(BranchConfig.PathConfig, Constraints);			
 			if (!Branch.IsEmpty())
-				StepsSinceLastBranch = 0;	
+			{
+				StepsSinceLastBranch = 0;
+				// Graph metadata
+				CachedMapGraph.BranchesCount++;
+			}
 		}
 	}
 }

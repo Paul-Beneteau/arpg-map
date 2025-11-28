@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Graph/MapGraph.h"
-#include "Graph/MapGeneratorConfig.h"
+#include "MapGeneratorConfig.h"
 #include "MapGenerator.generated.h"
 
 class UMapGeneratorConfig;
@@ -29,6 +29,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ClearMap();
 
+	UFUNCTION(BlueprintCallable)
+	const FMapGraph& GetCachedGraph() { return CachedMapGraph; }; 
+	
 	// Show the graph used to generate the current map
 	UFUNCTION(BlueprintCallable)
 	void ShowGraph() const;
