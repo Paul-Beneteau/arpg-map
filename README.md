@@ -14,7 +14,7 @@ Tile-based procedural Map Generator I made for an ARPG. The generation has 3 ste
 - Connector-based tile matching (Path, Wall, River, etc.)
 - Weighted random selection for map layout and tiles
 
-![img.png](img.png)
+![Map Example](map-example.png)
 
 ## How to use it
 
