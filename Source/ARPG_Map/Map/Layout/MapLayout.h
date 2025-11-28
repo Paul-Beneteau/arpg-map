@@ -200,7 +200,7 @@ struct FMapPathConstraints
 		return true;
 	}
 
-	// Get the maximum valid segment length of the current cell in the direction given.
+	// Returns maximum valid segment length by stepping in direction until hitting bounds/used cell
 	int32 GetMaxSegmentLength(const FMapGraphCoord& StartCoord, EMapDirection Direction)
 	{
 		int32 Length = 0;

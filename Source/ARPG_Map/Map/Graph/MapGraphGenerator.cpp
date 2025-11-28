@@ -121,6 +121,7 @@ void UMapGraphGenerator::AddBranchesToPath(const TArray<FMapSegment>& Path, cons
 
 namespace 
 {
+	// Returns true if cell has exactly 2 opposite path connectors
 	bool IsCellStraightPath(const FMapGraphCell& Cell)
 	{
 		TArray<FMapConnector> PathConnectors;
@@ -137,6 +138,8 @@ namespace
 		return false;
 	}
 
+	// Finds connector in opposite direction of ConnectorDirection
+	// Finds connector in opposite direction of ConnectorDirection
 	FMapConnector GetOppositeConnector(const FMapGraphCell& Cell, const EMapDirection& ConnectorDirection)
 	{		
 		for (FMapConnector Connector : Cell.Connectors)
@@ -159,8 +162,9 @@ void UMapGraphGenerator::AddBranchesForConfig(const TArray<FMapSegment>& Path, c
 		{
 			FMapGraphCoord CurrentMainPathCoord = Segment.GetCoordAt(Index);
 
-			// Check if the branch should be generated. Steps between last branch must be above step interval config, cell must be a straight path
-			// (This could be removed, it's a style preference) and the random spawn probability is picked.
+			// 1. Minimum distance since last branch (prevents clustering)
+			// 2. Only spawn at straight path segments (style preference)
+			// 3. Random probability check
 			if (StepsSinceLastBranch < BranchConfig.DistanceBetweenBranches				
 				|| !IsCellStraightPath(CachedMapGraph.At(CurrentMainPathCoord))
 				|| FMath::FRand() > BranchConfig.SpawnProbability)
@@ -236,7 +240,6 @@ void UMapGraphGenerator::PlaceSegment(const FMapSegment& Segment, const FMapConn
 	{
 		const FMapGraphCoord CurrentCoord = Segment.GetCoordAt(Index);
 		
-		// Cell should be inside the graph and not already used. This case should never happen because FMapPathGenerator generates only valid path
 		if (!MapUtils::IsInsideBounds(Rows, Columns, CurrentCoord) || CachedMapGraph.At(CurrentCoord).IsUsed())
 		{
 			UE_LOG(LogTemp, Error, TEXT("AMapGraphGenerator: Segment to place is invalid | Segment start: %d-%d"), Segment.Start.Row, Segment.Start.Column); 

@@ -9,10 +9,11 @@ Tile-based procedural Map Generator I made for an ARPG. The generation has 3 ste
 3. **World Placement** - Spawns tiles with proper rotation
 
 ### Features
-- Multiple layout patterns (L, U, Stairs, Square, Straight) for main path and branches
-- Wave function collapse-style tile selection
-- Connector-based tile matching (Path, Wall, River, etc.)
-- Weighted random selection for map layout and tiles
+- Graph generator creating layout (main path + branches) with configurable path patterns
+- Path generator with multiple layout patterns (L, U, Stairs, Square, Straight, etc.)
+- Connector system (Path, Wall, River, etc.) for tile neighbor constraints
+- Tile selector matching graph cells with  graph constraints
+- Weighted random selection for layout and tiles
 
 ![Map Example](map-example.png)
 

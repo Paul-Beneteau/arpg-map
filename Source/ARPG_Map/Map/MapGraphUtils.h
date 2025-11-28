@@ -12,7 +12,8 @@ namespace MapUtils
 {
 	int32 RotationToYaw(EMapRotation Rotation);
 	
-	// Rotate a direction clockwise by the specified rotation. RotateClockwise(North, Degree90) -> East
+	// Rotate direction clockwise by converting rotation to yaw angles: North=0°, East=90°, South=180°, West=270°
+	// Example: RotateClockwise(North, Degree90) -> East
 	EMapDirection RotateClockwise(EMapDirection Direction, EMapRotation Rotation);
 	// Get the rotation between two direction
 	EMapRotation GetRotationBetween(EMapDirection FromDirection, EMapDirection TowardDirection);

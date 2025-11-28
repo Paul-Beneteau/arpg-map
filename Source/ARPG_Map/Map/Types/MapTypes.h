@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "MapTypes.generated.h"
 
-// Cardinal directions
 UENUM(BlueprintType)
 enum class EMapDirection : uint8
 {

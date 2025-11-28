@@ -54,7 +54,7 @@ protected:
 	// Get possible valid tile templates for the graph cell
 	TArray<UMapTileTemplate*> GetMatchingTemplates(const FMapGraphCell& Cell);
 
-	// Check if a template can be selected for the cell. Check if the template matches for all possible rotation of the tile.
+	// Tests template against cell by checking all 4 rotations (0°, 90°, 180°, 270°). Returns true if any rotation has matching connectors
 	bool DoesTemplateMatchCell(const UMapTileTemplate* Template, const FMapGraphCell& Cell) const;
 	
 	// Get template matching rotations with the cell
